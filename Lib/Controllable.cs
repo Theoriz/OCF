@@ -33,7 +33,7 @@ public class Controllable : MonoBehaviour
     public string id;
     [HideInInspector]
     public string folder = "";
-    public bool debug = true;
+    public bool debug;
     [HideInInspector]
     public string targetDirectory;
     [HideInInspector]
@@ -153,7 +153,7 @@ public class Controllable : MonoBehaviour
     public virtual void OnEnable()
     {
 		if (debug)
-			Debug.Log("Registering " + this.GetType().Name + " script on " + this.gameObject.name);
+			Debug.Log("Registering " + this.GetType().Name + " script as " + id);
         ControllableMaster.Register(this);
 
         if (usePresets)
@@ -338,6 +338,7 @@ public class Controllable : MonoBehaviour
 
 		if (debug)
 			Debug.Log("Unregistering " + this.GetType().Name + " script on " + this.gameObject.name);
+
 		ControllableMaster.UnRegister(this);
     }
 
@@ -357,7 +358,11 @@ public class Controllable : MonoBehaviour
 
     protected void RaiseEventValueChanged(string property)
     {
-         if (controllableValueChanged != null) controllableValueChanged(property);
+        if (!this.enabled)
+            return;
+
+        if (controllableValueChanged != null)
+            controllableValueChanged(property);
     }
 
     public void setProp(string property, List<object> values)
