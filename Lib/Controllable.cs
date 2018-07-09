@@ -25,6 +25,74 @@ public class ControllableData
     }
 }
 
+public class ClassAttributInfo
+{
+    public FieldInfo Field;
+    public PropertyInfo Property;
+    
+    private string _fieldType;
+    public Type FieldType
+    {
+        get
+        {
+            Type result = null;
+
+            if (Field != null)
+                result = Field.FieldType;
+
+            if (Property != null)
+                result = Property.PropertyType;
+
+            return result;
+        }
+    }
+
+
+    private string _name;
+    public string Name
+    {
+        get
+        {
+            string result = "";
+
+            if (Field != null)
+            {
+                result = Field.Name;
+            }
+
+            if (Property != null)
+                result = Property.Name;
+
+            return result;
+        }
+        set
+        {
+            this._name = value;
+        }
+    }
+
+    public object GetValue(object obj)
+    {
+        object result = null;
+        if (Property != null)
+            result = Property.GetValue(obj, null);
+
+        if (Field != null)
+            result = Field.GetValue(obj);
+
+        return result;
+    }
+
+    public void SetValue(object obj, object value)
+    {
+        if (Property != null)
+            Property.SetValue(obj, value, null);
+
+        if (Field != null)
+            Field.SetValue(obj, value);
+    }
+}
+
 public class Controllable : MonoBehaviour
 {
     public object TargetScript; 
@@ -41,9 +109,9 @@ public class Controllable : MonoBehaviour
     [HideInInspector]
     public bool usePanel = true, usePresets = true;
 
-    public Dictionary<string, FieldInfo> Properties;
-    public List<object> PreviousPropertiesValues;
-    public Dictionary<string, FieldInfo> TargetProperties;
+    public Dictionary<string, FieldInfo> Fields;
+    public List<object> PreviousFieldsValues;
+    public Dictionary<string, ClassAttributInfo> TargetFields;
 
     public Dictionary<string, MethodInfo> Methods;
 
@@ -70,43 +138,68 @@ public class Controllable : MonoBehaviour
         this.scriptValueChanged += OnScriptValueChanged;
         this.uiValueChanged += OnUiValueChanged;
 
-        //PROPERTIES
-        Properties = new Dictionary<string, FieldInfo>();
-        TargetProperties = new Dictionary<string, FieldInfo>();
-        PreviousPropertiesValues = new List<object>();
+        //FIELDS
+        Fields = new Dictionary<string, FieldInfo>();
+        TargetFields = new Dictionary<string, ClassAttributInfo>();
+        PreviousFieldsValues = new List<object>();
 
         Type t = GetType();
         FieldInfo[] objectFields = t.GetFields(BindingFlags.Instance | BindingFlags.Public);
         FieldInfo[] scriptFields = objectFields;
+        PropertyInfo[] scriptProperties = null;
         if (TargetScript != null)
+        {
             scriptFields = TargetScript.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
+            scriptProperties = TargetScript.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        }
 
         for (int i = 0; i < objectFields.Length; i++)
         {
             FieldInfo info = objectFields[i];
+            
             OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
             if (attribute != null)
             {
                 if (info.Name == "currentPreset" && !usePresets) continue;
 
-                Properties.Add(info.Name, info);
+                Fields.Add(info.Name, info);
                 if (TargetScript != null)
                 {
+                    var fieldAdded = false;
                     for (int j = 0; j < scriptFields.Length; j++)
                     {
                         if (scriptFields[j].Name == info.Name)
                         {
-                            TargetProperties.Add(scriptFields[j].Name, scriptFields[j]);
+                            var newClassAttributInfo = new ClassAttributInfo();
+                            newClassAttributInfo.Field = scriptFields[j];
+
+                            TargetFields.Add(scriptFields[j].Name, newClassAttributInfo);
+                            fieldAdded = true;
                             break;
                         }
                     }
+
+                    if (!fieldAdded)
+                    {
+                        for (int j = 0; j < scriptProperties.Length; j++)
+                        {
+                            if (scriptProperties[j].Name == info.Name)
+                            {
+                                var newClassAttributInfo = new ClassAttributInfo();
+                                newClassAttributInfo.Property = scriptProperties[j];
+
+                                TargetFields.Add(scriptProperties[j].Name, newClassAttributInfo);
+                                break;
+                            }
+                        }
+                    }
                 }
-                PreviousPropertiesValues.Add(info.GetValue(this));
+                PreviousFieldsValues.Add(info.GetValue(this));
             }
         }
 
-        //METHODS
 
+        //METHODS
         Methods = new Dictionary<string, MethodInfo>();
 
         MethodInfo[] methodFields = t.GetMethods(BindingFlags.Instance | BindingFlags.Public);
@@ -131,23 +224,23 @@ public class Controllable : MonoBehaviour
 
     public virtual void OnScriptValueChanged(string name)
     {
-        if (TargetScript.GetType().GetField(name) == null)
+        if (String.IsNullOrEmpty(name) || !TargetFields.ContainsKey(name))
         {
             if (debug)
                 Debug.Log("Name : " + name + " is null in target");
             return;
         }
-        this.GetType().GetField(name).SetValue(this, TargetScript.GetType().GetField(name).GetValue(TargetScript));
+        Fields[name].SetValue(this, TargetFields[name].GetValue(TargetScript));
         RaiseEventValueChanged(name);
     }
 
     public virtual void OnUiValueChanged(string name)
     {
-        if (TargetScript.GetType().GetField(name) == null) {
+        if (String.IsNullOrEmpty(name) || !TargetFields.ContainsKey(name)) {
             if(debug)
                 Debug.Log("Name : " + name + " is null in target");
             return; }
-        TargetScript.GetType().GetField(name).SetValue(TargetScript, this.GetType().GetField(name).GetValue(this));
+        TargetFields[name].SetValue(TargetScript, Fields[name].GetValue(this));
     }
 
     public virtual void OnEnable()
@@ -169,20 +262,20 @@ public class Controllable : MonoBehaviour
         }
     }
 
-
 	public virtual void Update() //Warn UI if attribut changes
     {
-        var propertiesArray = TargetProperties.Values.ToArray();
+        var TargetFieldsArray = TargetFields.Values.ToArray();
 
-        for (var i=0 ; i< TargetProperties.Count ; i++)
+        for (var i=0 ; i< TargetFieldsArray.Length ; i++)
         {
-            var value = propertiesArray[i].GetValue(TargetScript);
-            if (value.ToString() != PreviousPropertiesValues[i].ToString())
+            var value = TargetFieldsArray[i].GetValue(TargetScript);
+            //if (debug)
+            //    Debug.Log("Target script value : " + value.ToString() + " previous : " + PreviousFieldsValues[i].ToString());
+            if (value.ToString() != PreviousFieldsValues[i].ToString())
             {
-               // Debug.Log("Difference between " + propertiesArray[i].GetValue(this) + " and " + PreviousPropertiesValues[i].ToString());
-                    if (scriptValueChanged != null) scriptValueChanged(propertiesArray[i].Name);
-                RaiseEventValueChanged(propertiesArray[i].Name);
-                PreviousPropertiesValues[i] = value;
+                if (scriptValueChanged != null) scriptValueChanged(TargetFieldsArray[i].Name);
+                RaiseEventValueChanged(TargetFieldsArray[i].Name);
+                PreviousFieldsValues[i] = value;
             }
         }
     }
@@ -305,7 +398,7 @@ public class Controllable : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError("Error while loading preset : " + e.StackTrace);
+            Debug.LogError("Error while loading preset : " + e.Message + e.StackTrace);
             return;
         }
         currentPreset = fileName;
@@ -367,9 +460,6 @@ public class Controllable : MonoBehaviour
 
     public void setProp(string property, List<object> values)
     {
-
-     //   if (Properties == null || Methods == null) init();
-
         FieldInfo info = getPropInfoForAddress(property);
         if (info != null)
         {
@@ -571,7 +661,7 @@ public class Controllable : MonoBehaviour
 
     public FieldInfo getPropInfoForAddress(string address)
     {
-        foreach(KeyValuePair<string, FieldInfo> p in Properties)
+        foreach(KeyValuePair<string, FieldInfo> p in Fields)
         {
             if(p.Key == address)
             {
@@ -597,7 +687,7 @@ public class Controllable : MonoBehaviour
         ControllableData data = new ControllableData();
         data.dataID = id;
 
-        foreach (FieldInfo p in Properties.Values)
+        foreach (FieldInfo p in Fields.Values)
         {
             OSCProperty attribute = Attribute.GetCustomAttribute(p, typeof(OSCProperty)) as OSCProperty;
             if (attribute.IncludeInPresets)
@@ -640,7 +730,7 @@ public class Controllable : MonoBehaviour
         foreach (string dn in data.nameList)
         {
             FieldInfo info;
-            if (Properties.TryGetValue(dn, out info))
+            if (Fields.TryGetValue(dn, out info))
             {
                 if (tweenStyle != null)
                 {
@@ -659,8 +749,8 @@ public class Controllable : MonoBehaviour
                         curve = TweenCurves.Instance.LinearCurve;
 
                     StartCoroutine(
-                            TweenValue(Properties[dn],
-                                getObjectForValue(Properties[dn].FieldType.ToString(), data.valueList[index]),
+                            TweenValue(Fields[dn],
+                                getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]),
                                 duration,
                                 curve)
                             );
@@ -668,8 +758,8 @@ public class Controllable : MonoBehaviour
                 else
                 {
                     List<object> values = new List<object>();
-                    values.Add(getObjectForValue(Properties[dn].FieldType.ToString(), data.valueList[index]));
-                    setFieldProp(Properties[dn], values);
+                    values.Add(getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]));
+                    setFieldProp(Fields[dn], values);
                 }
             }
 
