@@ -36,6 +36,9 @@ public class OSCMaster : MonoBehaviour
 
     private void Update()
     {
+        if (server == null)
+            return;
+
         if (server.hasWaitingMessages())
             processMessage(server.getNextMessage());
     }
