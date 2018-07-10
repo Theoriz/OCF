@@ -95,7 +95,7 @@ public class ClassAttributInfo
 
 public class Controllable : MonoBehaviour
 {
-    public object TargetScript; 
+    public MonoBehaviour TargetScript; 
 
     public Color BarColor;
     public string id;
@@ -135,6 +135,9 @@ public class Controllable : MonoBehaviour
 
     public virtual void Awake()
     {
+        if (TargetScript == null)
+            Debug.LogError("TargetScript of " + this.GetType().ToString() + " is not set ! Aborting initialization.");
+
         this.scriptValueChanged += OnScriptValueChanged;
         this.uiValueChanged += OnUiValueChanged;
 
@@ -163,37 +166,36 @@ public class Controllable : MonoBehaviour
                 if (info.Name == "currentPreset" && !usePresets) continue;
 
                 Fields.Add(info.Name, info);
-                if (TargetScript != null)
+
+                var fieldAdded = false;
+                for (int j = 0; j < scriptFields.Length; j++)
                 {
-                    var fieldAdded = false;
-                    for (int j = 0; j < scriptFields.Length; j++)
+                    if (scriptFields[j].Name == info.Name)
                     {
-                        if (scriptFields[j].Name == info.Name)
+                        var newClassAttributInfo = new ClassAttributInfo();
+                        newClassAttributInfo.Field = scriptFields[j];
+
+                        TargetFields.Add(scriptFields[j].Name, newClassAttributInfo);
+                        fieldAdded = true;
+                        break;
+                    }
+                }
+
+                if (!fieldAdded)
+                {
+                    for (int j = 0; j < scriptProperties.Length; j++)
+                    {
+                        if (scriptProperties[j].Name == info.Name)
                         {
                             var newClassAttributInfo = new ClassAttributInfo();
-                            newClassAttributInfo.Field = scriptFields[j];
+                            newClassAttributInfo.Property = scriptProperties[j];
 
-                            TargetFields.Add(scriptFields[j].Name, newClassAttributInfo);
-                            fieldAdded = true;
+                            TargetFields.Add(scriptProperties[j].Name, newClassAttributInfo);
                             break;
                         }
                     }
-
-                    if (!fieldAdded)
-                    {
-                        for (int j = 0; j < scriptProperties.Length; j++)
-                        {
-                            if (scriptProperties[j].Name == info.Name)
-                            {
-                                var newClassAttributInfo = new ClassAttributInfo();
-                                newClassAttributInfo.Property = scriptProperties[j];
-
-                                TargetFields.Add(scriptProperties[j].Name, newClassAttributInfo);
-                                break;
-                            }
-                        }
-                    }
                 }
+                
                 PreviousFieldsValues.Add(info.GetValue(this));
             }
         }
