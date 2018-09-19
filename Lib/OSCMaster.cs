@@ -25,7 +25,7 @@ public class OSCMaster : MonoBehaviour
     public event ValueUpdateReadyEvent valueUpdateReady;
 
     public delegate void MessageAvailable(OSCMessage message);
-    public event MessageAvailable messageAvailable;
+    public static event MessageAvailable messageAvailable;
 
     // Use this for initialization
     void Awake()
@@ -82,14 +82,15 @@ public class OSCMaster : MonoBehaviour
     //}
 
     void processMessage(OSCMessage m)
-    {
+    {   
         if(logIncoming)
                Debug.Log("Received : " + m.Address + " " + m.Data);
 
        string[] addressSplit = m.Address.Split(new char[] { '/' });
 
-        //First addressSplit is null because of /OCF/...
-        if (addressSplit[1] != "OCF") //.Length != 3)
+            Debug.Log(addressSplit.Length);
+
+        if (addressSplit.Length == 1 || addressSplit[1] != "OCF") //If length == 1 then it's not an OSC address, don't process it but propagate anyway
         {
 			if (messageAvailable != null)
                 messageAvailable(m); //propagate the message
