@@ -99,7 +99,7 @@ public class Controllable : MonoBehaviour
 
     public MonoBehaviour TargetScript; 
 
-    public Color BarColor;
+    public Color BarColor = Color.white;
     public string id;
     [HideInInspector]
     public string folder = "";
@@ -416,7 +416,7 @@ public class Controllable : MonoBehaviour
     public virtual void OnDisable()
     {
         if (debug)
-            Debug.Log("Saving temp file before destruction");
+            Debug.Log("Saving temp file with : " + currentPreset);
 
         if (usePresets)
         {
