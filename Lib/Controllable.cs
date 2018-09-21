@@ -95,6 +95,8 @@ public class ClassAttributInfo
 
 public class Controllable : MonoBehaviour
 {
+    [Header("Controllable settings")]
+
     public MonoBehaviour TargetScript; 
 
     public Color BarColor;
@@ -126,9 +128,9 @@ public class Controllable : MonoBehaviour
     public delegate void ScriptValueChangedEvent(string name);
 
     public event ScriptValueChangedEvent scriptValueChanged;
-
+    [HideInInspector]
     [OSCProperty(TargetList = "presetList", IncludeInPresets = false)] public string currentPreset;
-
+    [HideInInspector]
     public List<string> presetList;
 
     private string tempFileName = "_temp.pst";
@@ -478,7 +480,7 @@ public class Controllable : MonoBehaviour
     }
 
     public void setFieldProp(FieldInfo info, List<object> values, bool silent = false)
-   {
+    {
         string typeString = info.FieldType.ToString();
 
         if(debug)
@@ -488,30 +490,30 @@ public class Controllable : MonoBehaviour
 
         if (typeString == "System.Single")
         {
-            if(values.Count >= 1) info.SetValue(this, getFloat(values[0]));
+            if(values.Count >= 1) info.SetValue(this, TypeConverter.getFloat(values[0]));
         }
         else if(typeString == "System.Boolean")
         {
-            if (values.Count >= 1) info.SetValue(this, getBool(values[0]));
+            if (values.Count >= 1) info.SetValue(this, TypeConverter.getBool(values[0]));
         }
         else if(typeString == "System.Int32")
         {
-            if (values.Count >= 1) info.SetValue(this, getInt(values[0]));
+            if (values.Count >= 1) info.SetValue(this, TypeConverter.getInt(values[0]));
         } else if (typeString == "UnityEngine.Vector2")
         {
             if (values.Count == 1) info.SetValue(this, (Vector2)values[0]);
-            if (values.Count >= 2) info.SetValue(this, new Vector2(getFloat(values[0]), getFloat(values[1])));
+            if (values.Count >= 2) info.SetValue(this, new Vector2(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1])));
         }
         else if (typeString == "UnityEngine.Vector3")
         {
             if (values.Count == 1) info.SetValue(this, (Vector3)values[0]);
-            if (values.Count >= 3) info.SetValue(this, new Vector3(getFloat(values[0]), getFloat(values[1]), getFloat(values[2])));
+            if (values.Count >= 3) info.SetValue(this, new Vector3(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2])));
         }
         else if (typeString == "UnityEngine.Color")
         {
             if(values.Count == 1) info.SetValue(this, (Color)values[0]);
-            else if (values.Count >= 4) info.SetValue(this, new Color(getFloat(values[0]), getFloat(values[1]), getFloat(values[2]), getFloat(values[3])));
-            else if(values.Count >= 3) info.SetValue(this, new Color(getFloat(values[0]), getFloat(values[1]), getFloat(values[2]),1));
+            else if (values.Count >= 4) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), TypeConverter.getFloat(values[3])));
+            else if(values.Count >= 3) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]),1));
         }
         else if (typeString == "System.String")
         {
@@ -540,7 +542,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 1)
                 {
-                    parameters[i] = getFloat(values[valueIndex]);
+                    parameters[i] = TypeConverter.getFloat(values[valueIndex]);
                     valueIndex += 1;
                 }
             }
@@ -548,7 +550,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 1)
                 {
-                    parameters[i] = getBool(values[valueIndex]);
+                    parameters[i] = TypeConverter.getBool(values[valueIndex]);
                     valueIndex += 1;
                 }
             }
@@ -556,7 +558,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 1)
                 {
-                    parameters[i] = getInt(values[valueIndex]);
+                    parameters[i] = TypeConverter.getInt(values[valueIndex]);
                     valueIndex += 1;
                 }
             }
@@ -564,7 +566,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 2)
                 {
-                    parameters[i] = new Vector2(getFloat(values[valueIndex]), getFloat(values[valueIndex + 1]));
+                    parameters[i] = new Vector2(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]));
                     valueIndex += 2;
                 }
             }
@@ -572,7 +574,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 3)
                 {
-                    parameters[i] = new Vector3(getFloat(values[valueIndex]), getFloat(values[valueIndex + 1]), getFloat(values[valueIndex + 2]));
+                    parameters[i] = new Vector3(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]));
                     valueIndex += 3;
                 }
             }
@@ -580,12 +582,12 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 4)
                 {
-                    parameters[i] = new Color(getFloat(values[valueIndex + 0]), getFloat(values[valueIndex + 1]), getFloat(values[valueIndex + 2]), getFloat(values[valueIndex + 3]));
+                    parameters[i] = new Color(TypeConverter.getFloat(values[valueIndex + 0]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), TypeConverter.getFloat(values[valueIndex + 3]));
                     valueIndex += 4;
                 }
                 else if (values.Count >= i + 3)
                 {
-                    parameters[i] = new Color(getFloat(values[valueIndex + 0]), getFloat(values[valueIndex + 1]), getFloat(values[valueIndex + 2]), 1);
+                    parameters[i] = new Color(TypeConverter.getFloat(values[valueIndex + 0]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), 1);
                     valueIndex += 3;
                 }
 
@@ -604,62 +606,7 @@ public class Controllable : MonoBehaviour
         info.Invoke(this, parameters);
     }
 
-    public float getFloat(object value)
-    {
-        Type t = value.GetType();
-        if (t == typeof(float)) return (float)value;
-        if (t == typeof(int)) return (float)((int)value);
-        if (t == typeof(string))
-        {
-            float result = 0;
-            float.TryParse((string)value, out result);
-            return result;
-        }
-
-        if (t == typeof(bool)) return (bool)value ? 1 : 0;
-
-        return float.NaN;
-    }
-
-    public int getInt(object value)
-    {
-        Type t = value.GetType();
-        if (t == typeof(float)) return (int)((float)value);
-        if (t == typeof(int)) return (int)value;
-        if (t == typeof(string))
-        {
-            int result = 0;
-            int.TryParse((string)value, out result);
-            return result;
-        }
-        if (t == typeof(bool)) return (bool)value ? 1 : 0;
-
-        return 0;
-    }
-
-    public bool getBool(object value)
-    {
-        Type t = value.GetType();
-        if (t == typeof(float)) return (float)value >= 1;
-        if (t == typeof(int)) return (int)value >= 1;
-        if (t == typeof(string))
-        {
-            string s = ((string) value).ToLower();
-            if (s == "true" || s == "1")
-                return true;
-
-            if (s == "false" || s == "0")
-                return false;
-
-            int result = 0;
-            int.TryParse((string)value, out result);
-
-            return result >= 1;
-        }
-        if (t == typeof(bool)) return (bool)value;
-
-        return false;
-    }
+    
 
     public FieldInfo getPropInfoForAddress(string address)
     {
@@ -752,7 +699,7 @@ public class Controllable : MonoBehaviour
 
                     StartCoroutine(
                             TweenValue(Fields[dn],
-                                getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]),
+                                TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]),
                                 duration,
                                 curve)
                             );
@@ -760,17 +707,17 @@ public class Controllable : MonoBehaviour
                 else
                 {
                     List<object> values = new List<object>();
-                    values.Add(getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]));
+                    values.Add(TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]));
                     setFieldProp(Fields[dn], values);
                 }
             }
 
             index++;
         }
-        StartCoroutine(WaitForTweenEnd(duration));
+        StartCoroutine(CallAfterDuration(DataLoaded, duration));
     }
 
-    IEnumerator WaitForTweenEnd(float duration)
+    IEnumerator CallAfterDuration(Action callback, float duration)
     {
         var currentTime = 0.0f;
         while (currentTime < duration)
@@ -779,11 +726,7 @@ public class Controllable : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
-        DataLoaded();
-        if (debug)
-            Debug.Log("Done loading.");
-
-        yield return null;
+        callback();
     }
 
     IEnumerator TweenValue(FieldInfo fieldInfo, object end, float duration, AnimationCurve curve)
@@ -831,85 +774,5 @@ public class Controllable : MonoBehaviour
         List<object> finalValue = new List<object>();
         finalValue.Add(end);
         setFieldProp(fieldInfo, finalValue);
-
-        yield return 0;
     }
-
-    object getObjectForValue(string typeString, string value)
-    {
-        if (typeString == "System.Single") return getFloat(value);
-        if (typeString == "System.Boolean") return getBool(value);
-        if (typeString == "System.Int32") return getInt(value);
-        if (typeString == "UnityEngine.Vector2") return StringToVector2(value);
-        if( typeString == "UnityEngine.Vector3") return StringToVector3(value);
-        if (typeString == "UnityEngine.Color") return StringToColor(value);
-        if (typeString == "System.String") return value;
-
-        return null;
-    }
-
-
-    public static Color StringToColor(string sColor)
-    {
-        // Remove the parentheses
-        if (sColor.StartsWith("RGBA(") && sColor.EndsWith(")"))
-        {
-            sColor = sColor.Substring(5, sColor.Length - 6);
-        }
-
-        // split the items
-        string[] sArray = sColor.Split(',');
-
-        // store as a Vector3
-        Color result = new Color(
-            float.Parse(sArray[0]),
-            float.Parse(sArray[1]),
-            float.Parse(sArray[2]),
-            float.Parse(sArray[3])
-        );
-
-
-        return result;
-    }
-
-    public static Vector2 StringToVector2(string sVector)
-    {
-        // Remove the parentheses
-        if (sVector.StartsWith("(") && sVector.EndsWith(")"))
-        {
-            sVector = sVector.Substring(1, sVector.Length - 2);
-        }
-
-        // split the items
-        string[] sArray = sVector.Split(',');
-
-        // store as a Vector3
-        Vector2 result = new Vector2(
-            float.Parse(sArray[0]),
-            float.Parse(sArray[1])
-            );
-
-        return result;
-    }
-
-    public static Vector3 StringToVector3(string sVector)
-    {
-        // Remove the parentheses
-        if (sVector.StartsWith("(") && sVector.EndsWith(")"))
-        {
-            sVector = sVector.Substring(1, sVector.Length - 2);
-        }
-
-        // split the items
-        string[] sArray = sVector.Split(',');
-
-        // store as a Vector3
-        Vector3 result = new Vector3(
-            float.Parse(sArray[0]),
-            float.Parse(sArray[1]),
-            float.Parse(sArray[2]));
-
-        return result;
-    }
-
 }
