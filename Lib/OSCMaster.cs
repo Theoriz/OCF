@@ -88,8 +88,6 @@ public class OSCMaster : MonoBehaviour
 
        string[] addressSplit = m.Address.Split(new char[] { '/' });
 
-            Debug.Log(addressSplit.Length);
-
         if (addressSplit.Length == 1 || addressSplit[1] != "OCF") //If length == 1 then it's not an OSC address, don't process it but propagate anyway
         {
 			if (messageAvailable != null)
