@@ -10,7 +10,11 @@ public class OSCMaster : MonoBehaviour
 
     OSCReciever server;
 
-    public int localPort;
+    public int localPort = 6000;
+
+    public String remoteHost = "127.0.0.1";
+    public int remotePort = 6001;
+    
 
     public bool isConnected;
 
@@ -32,6 +36,7 @@ public class OSCMaster : MonoBehaviour
     {
         instance = this;
         client = new OSCClient(System.Net.IPAddress.Loopback, 0);
+        Connect();
     }
 
     private void Update()
@@ -123,9 +128,13 @@ public class OSCMaster : MonoBehaviour
         instance.client.SendTo(m, host, port);
     }
 
+    public static void sendMessage(OSCMessage m)
+    {
+        sendMessage(m, instance.remoteHost, instance.remotePort);
+    }
 
     void OnApplicationQuit()
     {
-        server.Close();
+        if(server != null) server.Close();
     }
 }
