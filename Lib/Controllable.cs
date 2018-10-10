@@ -48,7 +48,7 @@ public class ClassAttributInfo
     }
 
 
-    private string _name;
+    //private string _name;
     public string Name
     {
         get
@@ -67,7 +67,7 @@ public class ClassAttributInfo
         }
         set
         {
-            this._name = value;
+            //this._name = value;
         }
     }
 
@@ -673,6 +673,7 @@ public class Controllable : MonoBehaviour
 
     public void loadData(ControllableData data, float duration = 0, string tweenStyle = null)
     {
+        /*
         if (tweenStyle != null)
         {
             tweenStyle = tweenStyle.ToLower();
@@ -723,6 +724,7 @@ public class Controllable : MonoBehaviour
             index++;
         }
         StartCoroutine(CallAfterDuration(DataLoaded, duration));
+        */
     }
 
     IEnumerator CallAfterDuration(Action callback, float duration)
