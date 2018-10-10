@@ -25,8 +25,8 @@ public class OSCMaster : MonoBehaviour
    
     Controllable[] controllables;
 
-    public delegate void ValueUpdateReadyEvent(string target, string property, List<object> objects);
-    public event ValueUpdateReadyEvent valueUpdateReady;
+    //public delegate void ValueUpdateReadyEvent(string target, string property, List<object> objects);
+    //public event ValueUpdateReadyEvent valueUpdateReady;
 
     public delegate void MessageAvailable(OSCMessage message);
     public static event MessageAvailable messageAvailable;
@@ -107,7 +107,7 @@ public class OSCMaster : MonoBehaviour
 				property = addressSplit[3];
 			}
 			catch(Exception e) {
-				Debug.LogWarning("Error parsing OCF command ! ");
+				Debug.LogWarning("Error parsing OCF command ! "+e.Message);
 			}
 
 			if (logIncoming) Debug.Log("Message received for Target : " + target + ", property = " + property);

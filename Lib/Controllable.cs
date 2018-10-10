@@ -48,7 +48,7 @@ public class ClassAttributInfo
     }
 
 
-    private string _name;
+    //private string _name;
     public string Name
     {
         get
@@ -67,7 +67,7 @@ public class ClassAttributInfo
         }
         set
         {
-            this._name = value;
+            //this._name = value;
         }
     }
 
