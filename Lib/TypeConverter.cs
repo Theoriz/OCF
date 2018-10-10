@@ -71,7 +71,7 @@ public class TypeConverter : MonoBehaviour {
         }
         if (t == typeof(bool)) return (bool)value ? 1 : 0;
 
-        return 0;
+        return -1;
     }
 
     public static Color StringToColor(string sColor)

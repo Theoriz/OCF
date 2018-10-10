@@ -103,7 +103,7 @@ public class Controllable : MonoBehaviour
     public string id;
     [HideInInspector]
     public string folder = "";
-    public bool debug;
+    public bool debug = false;
     [HideInInspector]
     public string targetDirectory;
     [HideInInspector]
@@ -137,6 +137,9 @@ public class Controllable : MonoBehaviour
 
     public virtual void Awake()
     {
+
+        debug = false;
+
         if (TargetScript == null)
             Debug.LogError("TargetScript of " + this.GetType().ToString() + " is not set ! Aborting initialization.");
 
@@ -481,6 +484,11 @@ public class Controllable : MonoBehaviour
 
     public void setFieldProp(FieldInfo info, List<object> values, bool silent = false)
     {
+        OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
+
+        if (attribute.isInteractible == false)
+            return;
+
         string typeString = info.FieldType.ToString();
 
         if(debug)
