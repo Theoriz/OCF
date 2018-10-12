@@ -2,29 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ControllableMasterControllable : Controllable {
+public class ControllableMasterControllable : MonoBehaviour {
 
-    [Header("OSC UI control")]
-    [OSCProperty]
-    public int OSCInputPort;
+    public int IntField;
 
-    [OSCProperty(isInteractible = false)] public bool IsConnected;
-
-    [OSCMethod]
-    public void SaveAll()
-    {
-        ControllableMaster.SaveAllPresets();
+    private int _intProperty;
+    public int IntProperty {
+        get { return _intProperty; }
+        set { _intProperty = value; }
     }
 
-    [OSCMethod]
-    public void SaveAsAll()
-    {
-        ControllableMaster.SaveAsAllPresets();
-    }
-
-    [OSCMethod]
-    public void LoadAll()
-    {
-        ControllableMaster.LoadAllPresets();
+    public void Hi() {
+        Debug.Log("Hi !");
     }
 }

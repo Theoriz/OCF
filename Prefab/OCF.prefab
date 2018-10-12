@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5271181016098759429}
-  - component: {fileID: 5241244556600366515}
   - component: {fileID: 5241819907956781283}
   - component: {fileID: 5241920129525993979}
   m_Layer: 0
@@ -33,31 +32,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5241244556600366515
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5272654301087148801}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 35188bee7eaa1f549865a7992492c56e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  TargetScript: {fileID: 5241819907956781283}
-  BarColor: {r: 0.9716981, g: 0.28875935, b: 0.28875935, a: 1}
-  id: OCF
-  folder: 
-  debug: 0
-  targetDirectory: 
-  sourceScene: 
-  usePanel: 1
-  usePresets: 1
-  currentPreset: 
-  presetList: []
-  OSCInputPort: 0
-  IsConnected: 0
 --- !u!114 &5241819907956781283
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -74,6 +48,7 @@ MonoBehaviour:
   ShowDebug: 0
   OSCReceiverName: OCF
   RootOSCAddress: OCF
+  TempFileName: _temp.pst
 --- !u!114 &5241920129525993979
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -83,7 +58,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5272654301087148801}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc51ab6b9886e0143ac7bc341edb30c0, type: 3}
+  m_Script: {fileID: 11500000, guid: 53301cb3d925e144ca8792b207fe0d79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   LinearCurve:
