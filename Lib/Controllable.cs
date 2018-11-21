@@ -673,7 +673,7 @@ public class Controllable : MonoBehaviour
 
     public void loadData(ControllableData data, float duration = 0, string tweenStyle = null)
     {
-        /*
+        
         if (tweenStyle != null)
         {
             tweenStyle = tweenStyle.ToLower();
@@ -724,7 +724,7 @@ public class Controllable : MonoBehaviour
             index++;
         }
         StartCoroutine(CallAfterDuration(DataLoaded, duration));
-        */
+        
     }
 
     IEnumerator CallAfterDuration(Action callback, float duration)
