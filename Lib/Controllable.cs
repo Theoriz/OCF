@@ -75,7 +75,9 @@ public class ClassAttributInfo
     {
         object result = null;
         if (Property != null)
+        {
             result = Property.GetValue(obj, null);
+        }
 
         if (Field != null)
             result = Field.GetValue(obj);
@@ -181,12 +183,15 @@ public class Controllable : MonoBehaviour
                         newClassAttributInfo.Field = scriptFields[j];
 
                         TargetFields.Add(scriptFields[j].Name, newClassAttributInfo);
+
+                        PreviousFieldsValues.Add(newClassAttributInfo.GetValue(TargetScript));
+                        info.SetValue(this, newClassAttributInfo.GetValue(TargetScript));
                         fieldAdded = true;
                         break;
                     }
                 }
 
-                if (!fieldAdded)
+                if (!fieldAdded) 
                 {
                     for (int j = 0; j < scriptProperties.Length; j++)
                     {
@@ -196,12 +201,16 @@ public class Controllable : MonoBehaviour
                             newClassAttributInfo.Property = scriptProperties[j];
 
                             TargetFields.Add(scriptProperties[j].Name, newClassAttributInfo);
+                            PreviousFieldsValues.Add(newClassAttributInfo.GetValue(TargetScript));
+                            info.SetValue(this, newClassAttributInfo.GetValue(TargetScript));
+
                             break;
                         }
                     }
                 }
                 
-                PreviousFieldsValues.Add(info.GetValue(this));
+                // if(addedFieldName != "")
+                //     PreviousFieldsValues.Add(TargetFields[addedFieldName].GetValue(this));
             }
         }
 
