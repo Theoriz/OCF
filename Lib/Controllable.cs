@@ -322,7 +322,13 @@ public class Controllable : MonoBehaviour
     public void ReadFileList()
     {
         presetList.Clear();
-        targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0?folder:sourceScene) + "/" + id + "/";
+
+#if UNITY_STANDALONE || UNITY_EDITOR
+        targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
+        targetDirectory = Application.persistentDataPath + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+#endif
         Directory.CreateDirectory(targetDirectory);
         foreach (var t in Directory.GetFiles(targetDirectory))
         {
@@ -361,7 +367,12 @@ public class Controllable : MonoBehaviour
 
     private void Save(string fileName)
     {
+#if UNITY_STANDALONE || UNITY_EDITOR
         targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
+        targetDirectory = Application.persistentDataPath + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+#endif
         if (debug)
             Debug.Log("Saving in " + targetDirectory + fileName + "...");
         //create file
