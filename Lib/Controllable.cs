@@ -112,6 +112,8 @@ public class Controllable : MonoBehaviour
     public string sourceScene;
     [HideInInspector]
     public bool usePanel = true, usePresets = true;
+    [HideInInspector]
+    public bool hasPresets = false;
 
     public Dictionary<string, FieldInfo> Fields;
     public List<object> PreviousFieldsValues;
@@ -338,6 +340,10 @@ public class Controllable : MonoBehaviour
             presetList.Add(onlyFileName);
         }
 
+        if(presetList.Count != 0)
+        {
+            hasPresets = true;
+        }
         if (scriptValueChanged != null) scriptValueChanged("currentPreset");
         RaiseEventValueChanged("currentPreset");
     }
