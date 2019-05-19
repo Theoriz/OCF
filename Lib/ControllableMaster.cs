@@ -6,6 +6,8 @@ using UnityOSC;
 
 public class ControllableMaster : MonoBehaviour
 {
+    public static ControllableMaster instance;
+
     public bool IsConnected;
 
     public bool ShowDebug;
@@ -34,11 +36,16 @@ public class ControllableMaster : MonoBehaviour
     public delegate void ControllableRemovedEvent(Controllable controllable);
     public static event ControllableRemovedEvent controllableRemoved;
 
-    private void Awake()
+    private void Start()
     {
+        instance = this;
+
         var receiver = OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort);
         if (receiver == null)
+        {
+            IsConnected = false;
             return;
+        }
 
         receiver.messageReceived += processMessage;
         IsConnected = true;
