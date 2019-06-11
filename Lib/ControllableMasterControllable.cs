@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
 public class ControllableMasterControllable : Controllable {
 
     [Header("OSC UI control")]
+
+    [OSCProperty(isInteractible = false)]
+    public string IPAddress;
     [OSCProperty]
     public int OSCInputPort;
 

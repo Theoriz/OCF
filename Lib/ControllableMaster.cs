@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityOSC;
+using System.Net;
+using System.Net.Sockets;
 
 public class ControllableMaster : MonoBehaviour
 {
@@ -28,6 +30,10 @@ public class ControllableMaster : MonoBehaviour
         }
     }
 
+    public string IPAddress;
+    public float ipRefreshDelay;
+    private float _lastIPUpdate;
+
     public static Dictionary<string, Controllable> RegisteredControllables = new Dictionary<string, Controllable>();
 
     public delegate void ControllableAddedEvent(Controllable controllable);
@@ -47,9 +53,34 @@ public class ControllableMaster : MonoBehaviour
             return;
         }
 
+        IPAddress = GetLocalIPAddress();
+
+
         receiver.messageReceived += processMessage;
         IsConnected = true;
     }
+
+    private void Update()
+    {
+        if(Time.time - _lastIPUpdate > ipRefreshDelay)
+        {
+            _lastIPUpdate = Time.time;
+            IPAddress = GetLocalIPAddress();
+        }
+    }
+    public static string GetLocalIPAddress()
+    {
+        var host = Dns.GetHostEntry(Dns.GetHostName());
+        foreach (var ip in host.AddressList)
+        {
+            if (ip.AddressFamily == AddressFamily.InterNetwork)
+            {
+                return ip.ToString();
+            }
+        }
+        return "Not connected.";
+    }
+
 
     private void Connect() {
         IsConnected = false;
