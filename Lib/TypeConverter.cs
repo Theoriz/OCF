@@ -87,10 +87,10 @@ public class TypeConverter : MonoBehaviour {
 
         // store as a Vector3
         Color result = new Color(
-            float.Parse(sArray[0]),
-            float.Parse(sArray[1]),
-            float.Parse(sArray[2]),
-            float.Parse(sArray[3])
+            float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[2], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[3], System.Globalization.CultureInfo.InvariantCulture)
         );
 
 
@@ -110,8 +110,8 @@ public class TypeConverter : MonoBehaviour {
 
         // store as a Vector3
         Vector2 result = new Vector2(
-            float.Parse(sArray[0]),
-            float.Parse(sArray[1])
+            float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture)
             );
 
         return result;
@@ -119,6 +119,7 @@ public class TypeConverter : MonoBehaviour {
 
     public static Vector3 StringToVector3(string sVector)
     {
+        Debug.Log("Processing : " + sVector);
         // Remove the parentheses
         if (sVector.StartsWith("(") && sVector.EndsWith(")"))
         {
@@ -130,9 +131,9 @@ public class TypeConverter : MonoBehaviour {
 
         // store as a Vector3
         Vector3 result = new Vector3(
-            float.Parse(sArray[0]),
-            float.Parse(sArray[1]),
-            float.Parse(sArray[2]));
+            float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[2], System.Globalization.CultureInfo.InvariantCulture));
 
         return result;
     }
