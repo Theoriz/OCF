@@ -119,7 +119,6 @@ public class TypeConverter : MonoBehaviour {
 
     public static Vector3 StringToVector3(string sVector)
     {
-        Debug.Log("Processing : " + sVector);
         // Remove the parentheses
         if (sVector.StartsWith("(") && sVector.EndsWith(")"))
         {
