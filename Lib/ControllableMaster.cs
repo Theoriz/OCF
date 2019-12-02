@@ -132,7 +132,7 @@ public class ControllableMaster : MonoBehaviour
             }
             catch (Exception e)
             {
-                Debug.LogWarning("Error parsing OCF command ! ");
+                Debug.LogWarning("Error parsing OCF command ! " + e.Message);
             }
         }
         else
@@ -144,7 +144,7 @@ public class ControllableMaster : MonoBehaviour
             }
             catch (Exception e)
             {
-                Debug.LogWarning("Error parsing OCF command ! ");
+                Debug.LogWarning("Error parsing OCF command ! " + e.Message);
             }
         }
 
