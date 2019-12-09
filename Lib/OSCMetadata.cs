@@ -8,6 +8,7 @@ public class OSCMetadata : Attribute
 public class OSCProperty : OSCMetadata
 {
     public string TargetList;
+    public string enumName = "";
     public bool IncludeInPresets = true;
     public bool ShowInUI = true;
     public bool isInteractible = true;

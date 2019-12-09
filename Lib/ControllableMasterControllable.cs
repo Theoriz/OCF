@@ -5,7 +5,12 @@ using UnityEngine;
 
 public class ControllableMasterControllable : Controllable {
 
-    [Header("OSC UI control")]
+    [Header("Global Settings")]
+
+    [OSCProperty]
+    public bool HideCursorWithGenUI;
+
+    [Header("OSC Settings")]
 
     [OSCProperty(isInteractible = false)]
     public string IPAddress;
@@ -13,6 +18,7 @@ public class ControllableMasterControllable : Controllable {
     public int OSCInputPort;
 
     [OSCProperty(isInteractible = false)] public bool IsConnected;
+
 
     [OSCMethod]
     public void SaveAll()

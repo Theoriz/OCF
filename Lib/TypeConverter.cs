@@ -5,6 +5,18 @@ using System;
 
 public class TypeConverter : MonoBehaviour {
 
+    public static int getIndexInEnum(List<string> enumValueList, string selectedElement)
+    {
+        var activeElementIndex = -1;
+        for (var i = 0; i < enumValueList.Count; i++)
+        {
+            if (selectedElement == enumValueList[i].ToString())
+                activeElementIndex = i;
+        }
+
+        return activeElementIndex;
+    }
+
     public static object getObjectForValue(string typeString, string value)
     {
         if (typeString == "System.Single") return getFloat(value);

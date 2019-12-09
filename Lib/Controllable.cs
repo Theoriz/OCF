@@ -25,11 +25,17 @@ public class ControllableData
     }
 }
 
+public class ClassMethodInfo
+{
+    public MethodInfo methodInfo;
+    public bool fromTargetScript;
+}
+
 public class ClassAttributInfo
 {
     public FieldInfo Field;
     public PropertyInfo Property;
-    
+
     private string _fieldType;
     public Type FieldType
     {
@@ -119,7 +125,7 @@ public class Controllable : MonoBehaviour
     public List<object> PreviousFieldsValues;
     public Dictionary<string, ClassAttributInfo> TargetFields;
 
-    public Dictionary<string, MethodInfo> Methods;
+    public Dictionary<string, ClassMethodInfo> Methods;
 
     public delegate void UIValueChangedEvent(string name);
 
@@ -141,7 +147,6 @@ public class Controllable : MonoBehaviour
 
     public virtual void Awake()
     {
-
         debug = false;
 
         if (TargetScript == null)
@@ -216,9 +221,8 @@ public class Controllable : MonoBehaviour
             }
         }
 
-
         //METHODS
-        Methods = new Dictionary<string, MethodInfo>();
+        Methods = new Dictionary<string, ClassMethodInfo>();
 
         MethodInfo[] methodFields = t.GetMethods(BindingFlags.Instance | BindingFlags.Public);
 
@@ -229,7 +233,25 @@ public class Controllable : MonoBehaviour
             if (attribute != null)
             {
                 if((info.Name == "Save" || info.Name == "SaveAs" || info.Name == "Load" || info.Name == "Show") && !usePresets) continue;
-                Methods.Add(info.Name, info);
+                //Debug.Log("Testing : " + info.Name);
+
+                var classMethodInfo = new ClassMethodInfo();
+                classMethodInfo.methodInfo = info;
+                classMethodInfo.fromTargetScript = false;
+
+                var targetScriptMethod = TargetScript.GetType().GetMethod(info.Name);
+                if (targetScriptMethod != null)
+                {
+                    //Debug.Log("Adding : " + targetScriptMethod.Name);
+                    classMethodInfo.methodInfo = targetScriptMethod;
+                    classMethodInfo.fromTargetScript = true;
+
+                    Methods.Add(targetScriptMethod.Name, classMethodInfo);
+                }
+                else
+                {
+                    Methods.Add(info.Name, classMethodInfo);
+                }
             }
         }
 
@@ -255,9 +277,12 @@ public class Controllable : MonoBehaviour
     public virtual void OnUiValueChanged(string name)
     {
         if (String.IsNullOrEmpty(name) || !TargetFields.ContainsKey(name)) {
-            if(debug)
-                Debug.Log("Name : " + name + " is null in target");
-            return; }
+            if (debug)
+            {
+                Debug.Log("Name : " + name + " doesn't exist in target");
+            }
+            return;
+        }
         TargetFields[name].SetValue(TargetScript, Fields[name].GetValue(this));
     }
 
@@ -283,17 +308,17 @@ public class Controllable : MonoBehaviour
 	public virtual void Update() //Warn UI if attribut changes
     {
         var TargetFieldsArray = TargetFields.Values.ToArray();
-
+        
         for (var i=0 ; i< TargetFieldsArray.Length ; i++)
         {
             var value = TargetFieldsArray[i].GetValue(TargetScript);
-            //if (debug)
-            //    Debug.Log("Target script value : " + value.ToString() + " previous : " + PreviousFieldsValues[i].ToString());
+
             if (value.ToString() != PreviousFieldsValues[i].ToString())
             {
+                //Debug.Log("Target script value : " + value.ToString() + " previous : " + PreviousFieldsValues[i].ToString());
                 if (scriptValueChanged != null) scriptValueChanged(TargetFieldsArray[i].Name);
-                RaiseEventValueChanged(TargetFieldsArray[i].Name);
-                PreviousFieldsValues[i] = value;
+                    RaiseEventValueChanged(TargetFieldsArray[i].Name);
+                    PreviousFieldsValues[i] = value;
             }
         }
     }
@@ -500,15 +525,15 @@ public class Controllable : MonoBehaviour
             return;
         }
 
-        MethodInfo mInfo = getMethodInfoForAddress(property);
+        ClassMethodInfo mInfo = getMethodInfoForAddress(property);
         if (mInfo != null)
         {
-            setMethodProp(mInfo, property, values);
+            setMethodProp(mInfo, values);
             return;
         }
     }
 
-    public void setFieldProp(FieldInfo info, List<object> values, bool silent = false)
+    public void setFieldProp(FieldInfo info, List<object> values, bool isEnum = false)
     {
         OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
 
@@ -518,58 +543,64 @@ public class Controllable : MonoBehaviour
         string typeString = info.FieldType.ToString();
 
         if(debug)
-            Debug.Log("Setting attribut  " + info.Name + " of type " + typeString +" with " + values.Count+" value(s) // "+values[0].ToString());
+            Debug.Log("Setting attribut " + info.Name + " of type " + typeString + " (enum?"+ isEnum + ") with " + values.Count + " value(s)");
 
         // if we detect any attribute print out the data.
 
-        if (typeString == "System.Single")
+        if (isEnum)
         {
-            if(values.Count >= 1) info.SetValue(this, TypeConverter.getFloat(values[0]));
+            if (values.Count >= 1) info.SetValue(this, TypeConverter.getIndexInEnum(Enum.GetNames(Type.GetType(typeString)).ToList(), (string)values[0]));
         }
-        else if(typeString == "System.Boolean")
+        else
         {
-            if (values.Count >= 1) info.SetValue(this, TypeConverter.getBool(values[0]));
+            if (typeString == "System.Single")
+            {
+                if (values.Count >= 1) info.SetValue(this, TypeConverter.getFloat(values[0]));
+            }
+            else if (typeString == "System.Boolean")
+            {
+                if (values.Count >= 1) info.SetValue(this, TypeConverter.getBool(values[0]));
+            }
+            else if (typeString == "System.Int32")
+            {
+                if (values.Count >= 1) info.SetValue(this, TypeConverter.getInt(values[0]));
+            }
+            else if (typeString == "UnityEngine.Vector2")
+            {
+                if (values.Count == 1) info.SetValue(this, (Vector2)values[0]);
+                if (values.Count >= 2) info.SetValue(this, new Vector2(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1])));
+            }
+            else if (typeString == "UnityEngine.Vector3")
+            {
+                if (values.Count == 1) info.SetValue(this, (Vector3)values[0]);
+                if (values.Count >= 3) info.SetValue(this, new Vector3(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2])));
+            }
+            else if (typeString == "UnityEngine.Color")
+            {
+                if (values.Count == 1) info.SetValue(this, (Color)values[0]);
+                else if (values.Count >= 4) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), TypeConverter.getFloat(values[3])));
+                else if (values.Count >= 3) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), 1));
+            }
+            else if (typeString == "System.String")
+            {
+                // Debug.Log("String received : " + values.ToString());
+                info.SetValue(this, values[0].ToString());
+            }
         }
-        else if(typeString == "System.Int32")
-        {
-            if (values.Count >= 1) info.SetValue(this, TypeConverter.getInt(values[0]));
-        } else if (typeString == "UnityEngine.Vector2")
-        {
-            if (values.Count == 1) info.SetValue(this, (Vector2)values[0]);
-            if (values.Count >= 2) info.SetValue(this, new Vector2(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1])));
-        }
-        else if (typeString == "UnityEngine.Vector3")
-        {
-            if (values.Count == 1) info.SetValue(this, (Vector3)values[0]);
-            if (values.Count >= 3) info.SetValue(this, new Vector3(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2])));
-        }
-        else if (typeString == "UnityEngine.Color")
-        {
-            if(values.Count == 1) info.SetValue(this, (Color)values[0]);
-            else if (values.Count >= 4) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), TypeConverter.getFloat(values[3])));
-            else if(values.Count >= 3) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]),1));
-        }
-        else if (typeString == "System.String")
-        {
-           // Debug.Log("String received : " + values.ToString());
-            info.SetValue(this, values[0].ToString());
-        }
-
         if (uiValueChanged != null) uiValueChanged(info.Name);
-        //if (valueChanged != null && !silent) valueChanged(info.Name);
     }
 
-    public void setMethodProp(MethodInfo info, string property, List<object> values)
+    public void setMethodProp(ClassMethodInfo info, List<object> values)
     {
 
-        object[] parameters = new object[info.GetParameters().Length];
+        object[] parameters = new object[info.methodInfo.GetParameters().Length];
 
         if(debug) Debug.Log("Set Method, num expected parameters : " + parameters.Length);
 
         int valueIndex = 0;
         for(int i=0;i<parameters.Length;i++)
         {
-            string typeString = info.GetParameters()[i].ParameterType.ToString();
+            string typeString = info.methodInfo.GetParameters()[i].ParameterType.ToString();
             //Debug.Log("OSC IN Method, arg "+i+" TYPE : " + typeString + ", num values in OSC Message " + values.Count);
 
             if (typeString == "System.Single")
@@ -636,33 +667,37 @@ public class Controllable : MonoBehaviour
             }
 
         }
-
-        info.Invoke(this, parameters);
+        
+        if(!info.fromTargetScript)
+            info.methodInfo.Invoke(this, parameters);
+        else
+            info.methodInfo.Invoke(TargetScript, parameters);
     }
 
     
 
     public FieldInfo getPropInfoForAddress(string address)
     {
-        foreach(KeyValuePair<string, FieldInfo> p in Fields)
+        if (Fields.ContainsKey(address))
         {
-            if(p.Key == address)
-            {
-                return p.Value;
-            }
+            return Fields[address];
         }
-
-        return null;
+        else
+        {
+            return null;
+        }
     }
 
-    public MethodInfo getMethodInfoForAddress(string address)
+    public ClassMethodInfo getMethodInfoForAddress(string address)
     {
-        foreach (KeyValuePair<string, MethodInfo> p in Methods)
+        if (Methods.ContainsKey(address))
         {
-            if (p.Key == address)  return p.Value;
+            return Methods[address];
         }
-
-        return null;
+        else
+        {
+            return null;
+        }
     }
 
     public object getData()
@@ -742,8 +777,17 @@ public class Controllable : MonoBehaviour
                 else
                 {
                     List<object> values = new List<object>();
-                    values.Add(TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]));
-                    setFieldProp(Fields[dn], values);
+                    var convertedObject = TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]);
+                    if (convertedObject == null) //Might be an enum
+                    {
+                        values.Add(data.valueList[index]);
+                        setFieldProp(Fields[dn], values, true);
+                    }
+                    else
+                    {
+                        values.Add(convertedObject);
+                        setFieldProp(Fields[dn], values);
+                    }
                 }
             }
 

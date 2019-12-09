@@ -11,6 +11,19 @@ public class ControllableMaster : MonoBehaviour
     public static ControllableMaster instance;
 
     public bool IsConnected;
+    private bool _hideCursorWithGenUI = true;
+    public bool HideCursorWithGenUI
+    {
+        get
+        {
+            return _hideCursorWithGenUI;
+        }
+        set
+        {
+            _hideCursorWithGenUI = value;
+            UIMaster.Instance.AutoHideCursor = value;
+        }
+    }
 
     public bool ShowDebug;
     public string OSCReceiverName;
