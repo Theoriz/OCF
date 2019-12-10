@@ -160,8 +160,7 @@ public class Controllable : MonoBehaviour
         TargetFields = new Dictionary<string, ClassAttributInfo>();
         PreviousFieldsValues = new List<object>();
 
-        Type t = GetType();
-        FieldInfo[] objectFields = t.GetFields(BindingFlags.Instance | BindingFlags.Public);
+        FieldInfo[] objectFields = this.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
         FieldInfo[] scriptFields = objectFields;
         PropertyInfo[] scriptProperties = null;
         if (TargetScript != null)
@@ -224,7 +223,7 @@ public class Controllable : MonoBehaviour
         //METHODS
         Methods = new Dictionary<string, ClassMethodInfo>();
 
-        MethodInfo[] methodFields = t.GetMethods(BindingFlags.Instance | BindingFlags.Public);
+        MethodInfo[] methodFields = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
 
         for (int i = 0; i < methodFields.Length; i++)
         {

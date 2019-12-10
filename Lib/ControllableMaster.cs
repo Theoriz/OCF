@@ -58,19 +58,9 @@ public class ControllableMaster : MonoBehaviour
     private void Start()
     {
         instance = this;
-
-        var receiver = OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort);
-        if (receiver == null)
-        {
-            IsConnected = false;
-            return;
-        }
-
         IPAddress = GetLocalIPAddress();
 
-
-        receiver.messageReceived += processMessage;
-        IsConnected = true;
+        Connect();
     }
 
     private void Update()
@@ -98,17 +88,13 @@ public class ControllableMaster : MonoBehaviour
     private void Connect() {
         IsConnected = false;
 
-        if (OSCMaster.Receivers.ContainsKey(OSCReceiverName))
+        if (OSCMaster.HasReceiver(OSCReceiverName))
         {
             OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
             OSCMaster.RemoveReceiver(OSCReceiverName);
         }
 
-        var receiver = OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort);
-        if (receiver == null)
-            return;
-
-        receiver.messageReceived += processMessage;
+        OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort).messageReceived += processMessage; 
 
         IsConnected = true;
     }
