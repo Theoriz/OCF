@@ -17,6 +17,9 @@ public class ControllableMasterControllable : Controllable {
     [OSCProperty]
     public int OSCInputPort;
 
+    [Tooltip("If connect fails, increment port and retry.")]
+    [OSCProperty] public bool IncrementalConnect;
+
     [OSCProperty(isInteractible = false)] public bool IsConnected;
 
 

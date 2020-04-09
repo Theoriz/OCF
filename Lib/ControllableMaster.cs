@@ -25,6 +25,7 @@ public class ControllableMaster : MonoBehaviour
         }
     }
 
+    public bool IncrementalConnect = true;
     public bool ShowDebug;
     public string OSCReceiverName;
     public string RootOSCAddress;
@@ -69,6 +70,10 @@ public class ControllableMaster : MonoBehaviour
         {
             _lastIPUpdate = Time.time;
             IPAddress = GetLocalIPAddress();
+        }
+
+        if(!IsConnected && IncrementalConnect) {
+            OSCInputPort++;
         }
     }
     public static string GetLocalIPAddress()
