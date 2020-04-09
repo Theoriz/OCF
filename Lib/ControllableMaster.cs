@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityOSC;
 using System.Net;
 using System.Net.Sockets;
+using Mono.Zeroconf;
 
 public class ControllableMaster : MonoBehaviour
 {
@@ -55,6 +56,9 @@ public class ControllableMaster : MonoBehaviour
     public delegate void ControllableRemovedEvent(Controllable controllable);
     public static event ControllableRemovedEvent controllableRemoved;
 
+    private RegisterService service;
+    private bool zeroconfServiceCreated = false;
+
     private void Start()
     {
         instance = this;
@@ -71,6 +75,12 @@ public class ControllableMaster : MonoBehaviour
             IPAddress = GetLocalIPAddress();
         }
     }
+
+    private void OnDisable() {
+
+        CloseZeroconfService();
+    }
+
     public static string GetLocalIPAddress()
     {
         var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -97,6 +107,11 @@ public class ControllableMaster : MonoBehaviour
         OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort).messageReceived += processMessage; 
 
         IsConnected = true;
+
+        if (zeroconfServiceCreated)
+            CloseZeroconfService();
+
+        CreateZeroconfService();
     }
 
     void processMessage(OSCMessage m)
@@ -232,5 +247,28 @@ public class ControllableMaster : MonoBehaviour
         {
             controllable.Value.ReadFileList();
         }
+    }
+
+    private void CreateZeroconfService() {
+
+        //_osc._udp.
+        service = new RegisterService();
+        service.Name = Application.productName + " OCF";
+        service.RegType = "_osc._udp";
+        service.ReplyDomain = "local.";
+        service.UPort = (ushort)OSCInputPort;
+
+        service.Register();
+
+        zeroconfServiceCreated = true;
+    }
+
+    private void CloseZeroconfService() {
+
+        if (!zeroconfServiceCreated)
+            return;
+
+        service.Dispose();
+        zeroconfServiceCreated = false;
     }
 }
