@@ -120,6 +120,7 @@ public class Controllable : MonoBehaviour
     public bool usePanel = true, usePresets = true;
     [HideInInspector]
     public bool hasPresets = false;
+    public bool closePanelAtStart = false;
 
     public Dictionary<string, FieldInfo> Fields;
     public List<object> PreviousFieldsValues;
