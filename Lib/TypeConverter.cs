@@ -23,7 +23,9 @@ public class TypeConverter : MonoBehaviour {
         if (typeString == "System.Boolean") return getBool(value);
         if (typeString == "System.Int32") return getInt(value);
         if (typeString == "UnityEngine.Vector2") return StringToVector2(value);
+        if (typeString == "UnityEngine.Vector2Int") return StringToVector2Int(value);
         if (typeString == "UnityEngine.Vector3") return StringToVector3(value);
+        if (typeString == "UnityEngine.Vector3Int") return StringToVector3Int(value);
         if (typeString == "UnityEngine.Color") return StringToColor(value);
         if (typeString == "System.String") return value;
 
@@ -129,6 +131,24 @@ public class TypeConverter : MonoBehaviour {
         return result;
     }
 
+    public static Vector2Int StringToVector2Int(string sVector) {
+        // Remove the parentheses
+        if (sVector.StartsWith("(") && sVector.EndsWith(")")) {
+            sVector = sVector.Substring(1, sVector.Length - 2);
+        }
+
+        // split the items
+        string[] sArray = sVector.Split(',');
+
+        // store as a Vector2Int
+        Vector2Int result = new Vector2Int(
+            int.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
+            int.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture)
+            );
+
+        return result;
+    }
+
     public static Vector3 StringToVector3(string sVector)
     {
         // Remove the parentheses
@@ -145,6 +165,24 @@ public class TypeConverter : MonoBehaviour {
             float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
             float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
             float.Parse(sArray[2], System.Globalization.CultureInfo.InvariantCulture));
+
+        return result;
+    }
+
+    public static Vector3Int StringToVector3Int(string sVector) {
+        // Remove the parentheses
+        if (sVector.StartsWith("(") && sVector.EndsWith(")")) {
+            sVector = sVector.Substring(1, sVector.Length - 2);
+        }
+
+        // split the items
+        string[] sArray = sVector.Split(',');
+
+        // store as a Vector3Int
+        Vector3Int result = new Vector3Int(
+            int.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
+            int.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
+            int.Parse(sArray[2], System.Globalization.CultureInfo.InvariantCulture));
 
         return result;
     }

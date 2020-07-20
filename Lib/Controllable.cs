@@ -569,12 +569,22 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count == 1) info.SetValue(this, (Vector2)values[0]);
                 if (values.Count >= 2) info.SetValue(this, new Vector2(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1])));
-            }
+            } 
+            else if (typeString == "UnityEngine.Vector2Int") 
+            {
+                if (values.Count == 1) info.SetValue(this, (Vector2Int)values[0]);
+                if (values.Count >= 2) info.SetValue(this, new Vector2Int(TypeConverter.getInt(values[0]), TypeConverter.getInt(values[1])));
+            } 
             else if (typeString == "UnityEngine.Vector3")
             {
                 if (values.Count == 1) info.SetValue(this, (Vector3)values[0]);
                 if (values.Count >= 3) info.SetValue(this, new Vector3(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2])));
-            }
+            } 
+            else if (typeString == "UnityEngine.Vector3Int") 
+            {
+                if (values.Count == 1) info.SetValue(this, (Vector3Int)values[0]);
+                if (values.Count >= 3) info.SetValue(this, new Vector3Int(TypeConverter.getInt(values[0]), TypeConverter.getInt(values[1]), TypeConverter.getInt(values[2])));
+            } 
             else if (typeString == "UnityEngine.Color")
             {
                 if (values.Count == 1) info.SetValue(this, (Color)values[0]);
@@ -634,7 +644,15 @@ public class Controllable : MonoBehaviour
                     parameters[i] = new Vector2(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]));
                     valueIndex += 2;
                 }
-            }
+            } 
+            else if (typeString == "UnityEngine.Vector2Int") 
+            {
+                if (values.Count >= valueIndex + 2) 
+                {
+                    parameters[i] = new Vector2Int(TypeConverter.getInt(values[valueIndex]), TypeConverter.getInt(values[valueIndex + 1]));
+                    valueIndex += 2;
+                }
+            } 
             else if (typeString == "UnityEngine.Vector3")
             {
                 if (values.Count >= valueIndex + 3)
@@ -642,7 +660,15 @@ public class Controllable : MonoBehaviour
                     parameters[i] = new Vector3(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]));
                     valueIndex += 3;
                 }
-            }
+            } 
+            else if (typeString == "UnityEngine.Vector3Int") 
+            {
+                if (values.Count >= valueIndex + 3) 
+                {
+                    parameters[i] = new Vector3Int(TypeConverter.getInt(values[valueIndex]), TypeConverter.getInt(values[valueIndex + 1]), TypeConverter.getInt(values[valueIndex + 2]));
+                    valueIndex += 3;
+                }
+            } 
             else if (typeString == "UnityEngine.Color")
             {
                 if (values.Count >= valueIndex + 4)
@@ -719,7 +745,19 @@ public class Controllable : MonoBehaviour
                 if (p.FieldType.ToString() == "UnityEngine.Vector3")
                 {
                     data.valueList.Add(((Vector3) p.GetValue(this)).ToString("F8"));
-                }
+                } 
+                else if (p.FieldType.ToString() == "UnityEngine.Vector3Int") 
+                {
+                    data.valueList.Add(((Vector3Int)p.GetValue(this)).ToString());
+                } 
+                else if (p.FieldType.ToString() == "UnityEngine.Vector2") 
+                {
+                    data.valueList.Add(((Vector2)p.GetValue(this)).ToString("F8"));
+                } 
+                else if (p.FieldType.ToString() == "UnityEngine.Vector2Int") 
+                {
+                    data.valueList.Add(((Vector2Int)p.GetValue(this)).ToString());
+                } 
                 else if (p.FieldType.ToString() == "System.Single")
                 {
                     data.valueList.Add(((float)p.GetValue(this)).ToString("F8"));
@@ -778,6 +816,7 @@ public class Controllable : MonoBehaviour
                 {
                     List<object> values = new List<object>();
                     var convertedObject = TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]);
+
                     if (convertedObject == null) //Might be an enum
                     {
                         values.Add(data.valueList[index]);
@@ -830,13 +869,34 @@ public class Controllable : MonoBehaviour
             else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector2")
             {
                 values.Add(Vector2.Lerp((Vector2)startValue, (Vector2)end, curve.Evaluate(currentTime / duration)));
-            }
+            } 
+            
+            else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector2Int") 
+            {
+                Vector2Int startValueVector = (Vector2Int)startValue;
+                Vector2Int endVector = (Vector2Int)end;
 
+                values.Add(new Vector2Int(
+                    (int)Mathf.Lerp(startValueVector.x, endVector.x, curve.Evaluate(currentTime / duration)), 
+                    (int)Mathf.Lerp(startValueVector.y, endVector.y, curve.Evaluate(currentTime / duration))));
+            } 
+            
             else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector3")
             {
                 values.Add(Vector3.Lerp((Vector3)startValue, (Vector3)end, curve.Evaluate(currentTime / duration)));
-            }
+            } 
+            
+            else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector3Int") 
+            {
+                Vector3Int startValueVector = (Vector3Int)startValue;
+                Vector3Int endVector = (Vector3Int)end;
 
+                values.Add(new Vector3Int(
+                    (int)Mathf.Lerp(startValueVector.x, endVector.x, curve.Evaluate(currentTime / duration)),
+                    (int)Mathf.Lerp(startValueVector.y, endVector.y, curve.Evaluate(currentTime / duration)),
+                    (int)Mathf.Lerp(startValueVector.z, endVector.z, curve.Evaluate(currentTime / duration))));
+            } 
+            
             else if (fieldInfo.FieldType.ToString() == "UnityEngine.Color")
             {
                 values.Add(Color.Lerp((Color)startValue, (Color)end, curve.Evaluate(currentTime / duration)));
