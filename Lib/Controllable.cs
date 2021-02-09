@@ -350,12 +350,8 @@ public class Controllable : MonoBehaviour
     {
         presetList.Clear();
 
-#if UNITY_STANDALONE || UNITY_EDITOR
-        targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
-#endif
-#if UNITY_ANDROID && !UNITY_EDITOR
-        targetDirectory = Application.persistentDataPath + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
-#endif
+        UpdateTargetDirectory();
+
         Directory.CreateDirectory(targetDirectory);
         foreach (var t in Directory.GetFiles(targetDirectory))
         {
@@ -398,12 +394,9 @@ public class Controllable : MonoBehaviour
 
     private void Save(string fileName)
     {
-#if UNITY_STANDALONE || UNITY_EDITOR
-        targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
-#endif
-#if UNITY_ANDROID && !UNITY_EDITOR
-        targetDirectory = Application.persistentDataPath + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
-#endif
+
+        UpdateTargetDirectory();
+
         if (debug)
             Debug.Log("Saving in " + targetDirectory + fileName + "...");
         //create file
@@ -914,5 +907,20 @@ public class Controllable : MonoBehaviour
         List<object> finalValue = new List<object>();
         finalValue.Add(end);
         setFieldProp(fieldInfo, finalValue);
+    }
+
+    void UpdateTargetDirectory() {
+
+#if UNITY_STANDALONE || UNITY_EDITOR
+        //Should be cleaned up to find the correct ControllableMaster instance instead of using FindObjectOfType
+        if (FindObjectOfType<ControllableMaster>().useDocumentsDirectory) {
+            targetDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)+"/" + Application.productName + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+        } else {
+            targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+        }
+#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
+        targetDirectory = Application.persistentDataPath + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+#endif
     }
 }

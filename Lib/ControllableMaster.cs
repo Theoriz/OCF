@@ -27,6 +27,7 @@ public class ControllableMaster : MonoBehaviour
     }
 
     public bool IncrementalConnect = true;
+    public bool useDocumentsDirectory = false;
     public bool ShowDebug;
     public string OSCReceiverName;
     public string RootOSCAddress;
@@ -60,9 +61,13 @@ public class ControllableMaster : MonoBehaviour
     private RegisterService service;
     private bool zeroconfServiceCreated = false;
 
-    private void Start()
-    {
+	private void Awake() {
+
         instance = this;
+	}
+
+	private void Start()
+    {
         IPAddress = GetLocalIPAddress();
 
         Connect();
@@ -70,7 +75,7 @@ public class ControllableMaster : MonoBehaviour
 
     private void Update()
     {
-        if(Time.time - _lastIPUpdate > ipRefreshDelay)
+        if (Time.time - _lastIPUpdate > ipRefreshDelay)
         {
             _lastIPUpdate = Time.time;
             IPAddress = GetLocalIPAddress();
