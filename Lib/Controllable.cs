@@ -357,7 +357,7 @@ public class Controllable : MonoBehaviour
         {
             var onlyFileName = t.Split('/').Last();
             //Don't put temp file in list
-            if (onlyFileName == tempFileName) continue;
+            if (onlyFileName == tempFileName || onlyFileName.Split('.').Last() != "pst") continue;
             presetList.Add(onlyFileName);
         }
 
