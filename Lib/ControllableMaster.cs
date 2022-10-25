@@ -114,9 +114,14 @@ public class ControllableMaster : MonoBehaviour
             OSCMaster.RemoveReceiver(OSCReceiverName);
         }
 
-        OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort).messageReceived += processMessage; 
+		OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort);
 
-        IsConnected = true;
+		if (!OSCMaster.HasReceiver(OSCReceiverName))
+			return;
+
+		OSCMaster.Receivers[OSCReceiverName].messageReceived += processMessage;
+
+		IsConnected = true;
 
         if (zeroconfServiceCreated)
             CloseZeroconfService();
