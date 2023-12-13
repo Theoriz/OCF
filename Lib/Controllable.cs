@@ -913,7 +913,7 @@ public class Controllable : MonoBehaviour
 
 #if UNITY_STANDALONE || UNITY_EDITOR
         //Should be cleaned up to find the correct ControllableMaster instance instead of using FindObjectOfType
-        if (FindObjectOfType<ControllableMaster>().useDocumentsDirectory) {
+        if (FindFirstObjectByType<ControllableMaster>().useDocumentsDirectory) {
             targetDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)+"/" + Application.productName + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
         } else {
             targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
