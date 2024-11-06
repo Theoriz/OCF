@@ -5,11 +5,6 @@ using UnityEngine;
 
 public class ControllableMasterControllable : Controllable {
 
-    [Header("Global Settings")]
-
-    [OSCProperty]
-    public bool HideCursorWithGenUI;
-
     [Header("OSC Settings")]
 
     [OSCProperty(isInteractible = false)]

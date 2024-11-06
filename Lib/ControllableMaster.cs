@@ -13,18 +13,6 @@ public class ControllableMaster : MonoBehaviour
 
     public bool IsConnected;
 
-    public bool HideCursorWithGenUI
-    {
-        get
-        {
-            return UIMaster.Instance.AutoHideCursor;
-        }
-        set
-        {
-            UIMaster.Instance.AutoHideCursor = value;
-        }
-    }
-
     public bool IncrementalConnect = true;
     public bool useDocumentsDirectory = false;
     public bool ShowDebug;
