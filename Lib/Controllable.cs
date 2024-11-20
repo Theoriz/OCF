@@ -3,11 +3,8 @@ using System.Collections;
 using System.Reflection;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection.Emit;
-using System.Threading;
 using UnityEngine.SceneManagement;
 
 [Serializable]
@@ -411,6 +408,8 @@ public class Controllable : MonoBehaviour
             Debug.Log("Saved in " + targetDirectory + fileName);
 
         currentPreset = fileName;
+        WriteCurrentPresetToTempFile();
+
         ReadFileList();
     }
 
@@ -453,6 +452,7 @@ public class Controllable : MonoBehaviour
             return;
         }
         currentPreset = fileName;
+        WriteCurrentPresetToTempFile();
     }
 
     //Override it if you want to do things after a load
@@ -467,14 +467,7 @@ public class Controllable : MonoBehaviour
 
         if (usePresets)
         {
-            if (!string.IsNullOrEmpty(currentPreset))
-            {
-                //Create temp file
-                var tempFile = File.OpenWrite(targetDirectory + tempFileName);
-                tempFile.Close();
-                //write last loaded preset
-                File.WriteAllText(targetDirectory + tempFileName, currentPreset);
-            }
+            WriteCurrentPresetToTempFile();
         }
 
         if (debug)
@@ -927,5 +920,17 @@ public class Controllable : MonoBehaviour
 #if UNITY_ANDROID && !UNITY_EDITOR
         targetDirectory = Application.persistentDataPath + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
 #endif
+    }
+
+    void WriteCurrentPresetToTempFile()
+    {
+        if (!string.IsNullOrEmpty(currentPreset))
+        {
+            //Create temp file
+            var tempFile = File.OpenWrite(targetDirectory + tempFileName);
+            tempFile.Close();
+            //write last loaded preset
+            File.WriteAllText(targetDirectory + tempFileName, currentPreset);
+        }
     }
 }
