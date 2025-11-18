@@ -18,3 +18,8 @@ public class OSCProperty : OSCMetadata
 public class OSCMethod : OSCMetadata
 {
 }
+
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]
+public class OSCExposed : Attribute
+{
+}
