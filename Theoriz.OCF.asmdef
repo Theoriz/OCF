@@ -1,3 +1,16 @@
 {
-	"name": "Theoriz.OCF"
+    "name": "Theoriz.OCF",
+    "rootNamespace": "",
+    "references": [
+        "GUID:410a6c835b459644ab1364ee3da4083e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
