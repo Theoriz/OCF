@@ -4,7 +4,20 @@ using UnityEngine;
 
 public class ControllableComponentMenu : Editor
 {
-    [MenuItem("CONTEXT/Component/Add Controllable")]
+    [MenuItem("CONTEXT/Component/Add Controllable", true, 10000)]
+    private static bool ValidateMenu(MenuCommand command)
+    {
+        Component sourceComponent = command.context as Component;
+        if (sourceComponent == null)
+            return false;
+
+        // Get the MonoScript associated with the component's type
+        MonoScript monoScript = MonoScript.FromMonoBehaviour(sourceComponent as MonoBehaviour);
+
+        return monoScript != null;
+    }
+
+    [MenuItem("CONTEXT/Component/Add Controllable", false, 10000)]
     public static void AddControllable(MenuCommand command)
     {
         Component sourceComponent = command.context as Component;

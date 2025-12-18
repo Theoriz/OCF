@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEditor;
@@ -7,7 +6,7 @@ using UnityEngine;
 
 public static class ControllableGenerator
 {
-    [MenuItem("Assets/Generate Controllable Script", true)]
+    [MenuItem("Assets/Controllable/Generate Controllable Script", true, 10000)]
     private static bool ValidateMenu()
     {
         TextAsset selected = Selection.activeObject as TextAsset;
@@ -17,7 +16,7 @@ public static class ControllableGenerator
         return path.EndsWith(".cs");
     }
 
-    [MenuItem("Assets/Generate Controllable Script")]
+    [MenuItem("Assets/Controllable/Generate Controllable Script", false, 10000)]
     private static void CreateControllableScript()
     {
         MonoScript selected = Selection.activeObject as MonoScript;
