@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -37,7 +38,7 @@ public static class ControllableGenerator
 
     // -------------------------- Helpers --------------------------
 
-    public static void GenerateControllableForScript(string originalName, string originalPath)
+    public static void GenerateControllableForScript(string originalName, string originalPath, bool forceReplace = false)
     {
         string directory = Path.GetDirectoryName(originalPath);
 
@@ -56,7 +57,7 @@ public static class ControllableGenerator
         }
 
         // Check existing file
-        if (File.Exists(newPath))
+        if (File.Exists(newPath) && !forceReplace)
         {
             bool overwrite = EditorUtility.DisplayDialog(
                 "File Already Exists",
@@ -105,20 +106,6 @@ public class {newName} : Controllable
         return null;
     }
 
-    private static Type FindAttributeTypeByNames(params string[] names)
-    {
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            foreach (var name in names)
-            {
-                var t = asm.GetType(name);
-                if (t != null && typeof(Attribute).IsAssignableFrom(t))
-                    return t;
-            }
-        }
-        return null;
-    }
-
     private static string ExtractOSCExposedMembers(Type type)
     {
         Type oscAttribute = FindType("OSCExposed");
@@ -126,89 +113,63 @@ public class {newName} : Controllable
             return "    // ERROR: Could not find OSCExposed attribute.\r\n";
 
         string result = "";
-        BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
-        // Fields
-        foreach (var field in type.GetFields(flags))
+        // Get all members to preserve source order
+        MemberInfo[] members = type.GetMembers(flags);
+
+        foreach (var member in members)
         {
-            if (!Attribute.IsDefined(field, oscAttribute)) continue;
+            if (!Attribute.IsDefined(member, oscAttribute)) continue;
 
-            if (!field.IsPublic)
+            string memberString = "";
+
+            if (member is FieldInfo field)
             {
-                Debug.LogWarning($"{type.Name}.{field.Name} has [OSCExposed] but is not public. Ignored.");
-                continue;
-            }
-
-            string attributes = "";
-
-            // Range
-            var range = field.GetCustomAttribute<RangeAttribute>();
-            if (range != null)
-                attributes += $"    [Range({range.min}f, {range.max}f)]\r\n";
-
-            // Header
-            var header = field.GetCustomAttribute<HeaderAttribute>();
-            if (header != null)
-                attributes += $"    [Header(\"{header.header}\")]\r\n";
-
-            // Tooltip
-            var tooltip = field.GetCustomAttribute<TooltipAttribute>();
-            if (tooltip != null)
-                attributes += $"    [Tooltip(\"{tooltip.tooltip}\")]\r\n";
-
-            // OSCProperty
-            attributes += $"    [OSCProperty]\r\n";
-
-            result += $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n";
-        }
-
-        // Properties -> generate as public fields
-        foreach (var prop in type.GetProperties(flags))
-        {
-            if (!Attribute.IsDefined(prop, oscAttribute)) continue;
-
-            MethodInfo getter = prop.GetGetMethod(true);
-            bool isPublic = getter != null && getter.IsPublic;
-
-            if (!isPublic)
-            {
-                Debug.LogWarning($"{type.Name}.{prop.Name} has [OSCExposed] but is not public. Ignored.");
-                continue;
-            }
-
-            result += $"    [OSCProperty]\r\n    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n";
-        }
-
-        // Methods
-        foreach (var method in type.GetMethods(flags))
-        {
-            if (!Attribute.IsDefined(method, oscAttribute)) continue;
-
-            if (!method.IsPublic)
-            {
-                Debug.LogWarning($"{type.Name}.{method.Name} has [OSCExposed] but is not public. Ignored.");
-                continue;
-            }
-
-            if (method.IsSpecialName) continue; // skip property accessors/operators
-
-            string returnType = ToFriendlyTypeName(method.ReturnType);
-            ParameterInfo[] parameters = method.GetParameters();
-            string paramList = "";
-            string paramNames = "";
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var p = parameters[i];
-                paramList += $"{ToFriendlyTypeName(p.ParameterType)} {p.Name}";
-                paramNames += p.Name;
-                if (i < parameters.Length - 1)
+                if (!field.IsPublic)
                 {
-                    paramList += ", ";
-                    paramNames += ", ";
+                    Debug.LogWarning($"{type.Name}.{field.Name} has [OSCExposed] but is not public. Ignored.");
+                    continue;
                 }
+                string attributes = GetAttributes(field);
+                memberString = $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n";
+            }
+            else if (member is PropertyInfo prop)
+            {
+                MethodInfo getter = prop.GetGetMethod(true);
+                bool isPublic = getter != null && getter.IsPublic;
+
+                if (!isPublic)
+                {
+                    Debug.LogWarning($"{type.Name}.{prop.Name} has [OSCExposed] but is not public. Ignored.");
+                    continue;
+                }
+                string attributes = GetAttributes(prop);
+                memberString = $"{attributes}    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n";
+            }
+            else if (member is MethodInfo method)
+            {
+                if (!method.IsPublic)
+                {
+                    Debug.LogWarning($"{type.Name}.{method.Name} has [OSCExposed] but is not public. Ignored.");
+                    continue;
+                }
+
+                if (method.IsSpecialName) continue; // skip property accessors
+
+                string returnType = ToFriendlyTypeName(method.ReturnType);
+                ParameterInfo[] parameters = method.GetParameters();
+                string paramList = string.Join(", ", parameters.Select(p => $"{ToFriendlyTypeName(p.ParameterType)} {p.Name}"));
+                string paramNames = string.Join(", ", parameters.Select(p => p.Name));
+
+                memberString = $"\r\n    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        (TargetScript as {type.Name}).{method.Name}({paramNames});\r\n    }}\r\n";
             }
 
-            result += $"\r\n    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        (TargetScript as {type.Name}).{method.Name}({paramNames});\r\n    }}\r\n";
+            if (!string.IsNullOrEmpty(memberString))
+            {
+                // Add the member and an extra empty line for readability
+                result += memberString + "\r\n";
+            }
         }
 
         if (string.IsNullOrWhiteSpace(result))
@@ -217,6 +178,55 @@ public class {newName} : Controllable
         return result;
     }
 
+    private static string GetAttributes(FieldInfo field)
+    {
+        string attributes = "";
+
+        // Header
+        var header = field.GetCustomAttribute<HeaderAttribute>();
+        if (header != null)
+            attributes += $"    [Header(\"{header.header}\")]\r\n";
+
+        // Range
+        var range = field.GetCustomAttribute<RangeAttribute>();
+        if (range != null)
+            attributes += $"    [Range({range.min}f, {range.max}f)]\r\n";
+
+        // Tooltip
+        var tooltip = field.GetCustomAttribute<TooltipAttribute>();
+        if (tooltip != null)
+            attributes += $"    [Tooltip(\"{tooltip.tooltip}\")]\r\n";
+
+        // OSCProperty
+        attributes += $"    [OSCProperty]\r\n";
+
+        return attributes;
+    }
+
+    private static string GetAttributes(PropertyInfo property)
+    {
+        string attributes = "";
+
+        // Header
+        var header = property.GetCustomAttribute<HeaderAttribute>();
+        if (header != null)
+            attributes += $"    [Header(\"{header.header}\")]\r\n";
+
+        // Range
+        var range = property.GetCustomAttribute<RangeAttribute>();
+        if (range != null)
+            attributes += $"    [Range({range.min}f, {range.max}f)]\r\n";
+
+        // Tooltip
+        var tooltip = property.GetCustomAttribute<TooltipAttribute>();
+        if (tooltip != null)
+            attributes += $"    [Tooltip(\"{tooltip.tooltip}\")]\r\n";
+
+        // OSCProperty
+        attributes += $"    [OSCProperty]\r\n";
+
+        return attributes;
+    }
 
     private static string ToFriendlyTypeName(Type t)
     {

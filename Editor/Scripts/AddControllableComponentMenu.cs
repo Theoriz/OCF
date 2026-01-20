@@ -2,7 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-public class ControllableComponentMenu : Editor
+public class AddControllableComponentMenu : Editor
 {
     [MenuItem("CONTEXT/Component/Add Controllable", true, 10000)]
     private static bool ValidateMenu(MenuCommand command)
