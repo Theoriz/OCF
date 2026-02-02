@@ -108,8 +108,8 @@ public class {newName} : Controllable
 
     private static string ExtractOSCExposedMembers(Type type)
     {
-        Type oscAttribute = FindType("OSCExposed");
-        if (oscAttribute == null)
+        Type oscAttributeType = FindType("OSCExposed");
+        if (oscAttributeType == null)
             return "    // ERROR: Could not find OSCExposed attribute.\r\n";
 
         string result = "";
@@ -120,7 +120,9 @@ public class {newName} : Controllable
 
         foreach (var member in members)
         {
-            if (!Attribute.IsDefined(member, oscAttribute)) continue;
+            // Get the specific attribute instance to check properties like readOnly
+            Attribute oscExposedInstance = member.GetCustomAttribute(oscAttributeType);
+            if (oscExposedInstance == null) continue;
 
             string memberString = "";
 
@@ -131,7 +133,7 @@ public class {newName} : Controllable
                     Debug.LogWarning($"{type.Name}.{field.Name} has [OSCExposed] but is not public. Ignored.");
                     continue;
                 }
-                string attributes = GetAttributes(field);
+                string attributes = GetAttributes(field, oscAttributeType, oscExposedInstance);
                 memberString = $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n";
             }
             else if (member is PropertyInfo prop)
@@ -144,7 +146,7 @@ public class {newName} : Controllable
                     Debug.LogWarning($"{type.Name}.{prop.Name} has [OSCExposed] but is not public. Ignored.");
                     continue;
                 }
-                string attributes = GetAttributes(prop);
+                string attributes = GetAttributes(prop, oscAttributeType, oscExposedInstance);
                 memberString = $"{attributes}    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n";
             }
             else if (member is MethodInfo method)
@@ -178,52 +180,41 @@ public class {newName} : Controllable
         return result;
     }
 
-    private static string GetAttributes(FieldInfo field)
+    private static string GetAttributes(MemberInfo member, Type oscAttributeType, Attribute oscInstance)
     {
         string attributes = "";
 
         // Header
-        var header = field.GetCustomAttribute<HeaderAttribute>();
+        var header = member.GetCustomAttribute<HeaderAttribute>();
         if (header != null)
             attributes += $"    [Header(\"{header.header}\")]\r\n";
 
         // Range
-        var range = field.GetCustomAttribute<RangeAttribute>();
+        var range = member.GetCustomAttribute<RangeAttribute>();
         if (range != null)
             attributes += $"    [Range({range.min}f, {range.max}f)]\r\n";
 
         // Tooltip
-        var tooltip = field.GetCustomAttribute<TooltipAttribute>();
+        var tooltip = member.GetCustomAttribute<TooltipAttribute>();
         if (tooltip != null)
             attributes += $"    [Tooltip(\"{tooltip.tooltip}\")]\r\n";
 
-        // OSCProperty
-        attributes += $"    [OSCProperty]\r\n";
+        // OSCProperty logic: Check for readOnly via reflection on the OSCExposed instance
+        bool isReadOnly = false;
+        var readOnlyField = oscAttributeType.GetField("readOnly");
+        if (readOnlyField != null)
+        {
+            isReadOnly = (bool)readOnlyField.GetValue(oscInstance);
+        }
+        else
+        {
+            var readOnlyProp = oscAttributeType.GetProperty("readOnly");
+            if (readOnlyProp != null)
+                isReadOnly = (bool)readOnlyProp.GetValue(oscInstance);
+        }
 
-        return attributes;
-    }
-
-    private static string GetAttributes(PropertyInfo property)
-    {
-        string attributes = "";
-
-        // Header
-        var header = property.GetCustomAttribute<HeaderAttribute>();
-        if (header != null)
-            attributes += $"    [Header(\"{header.header}\")]\r\n";
-
-        // Range
-        var range = property.GetCustomAttribute<RangeAttribute>();
-        if (range != null)
-            attributes += $"    [Range({range.min}f, {range.max}f)]\r\n";
-
-        // Tooltip
-        var tooltip = property.GetCustomAttribute<TooltipAttribute>();
-        if (tooltip != null)
-            attributes += $"    [Tooltip(\"{tooltip.tooltip}\")]\r\n";
-
-        // OSCProperty
-        attributes += $"    [OSCProperty]\r\n";
+        string oscPropArgs = isReadOnly ? "(readOnly = true)" : "";
+        attributes += $"    [OSCProperty{oscPropArgs}]\r\n";
 
         return attributes;
     }
