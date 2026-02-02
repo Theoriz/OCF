@@ -7,7 +7,7 @@ public class ControllableMasterControllable : Controllable {
 
     [Header("OSC Settings")]
 
-    [OSCProperty(isInteractible = false)]
+    [OSCProperty(readOnly = true)]
     public string IPAddress;
     [OSCProperty]
     public int OSCInputPort;
@@ -15,7 +15,7 @@ public class ControllableMasterControllable : Controllable {
     [Tooltip("If connect fails, increment port and retry.")]
     [OSCProperty] public bool IncrementalConnect;
 
-    [OSCProperty(isInteractible = false)] public bool IsConnected;
+    [OSCProperty(readOnly = true)] public bool IsConnected;
 
 
     [OSCMethod]

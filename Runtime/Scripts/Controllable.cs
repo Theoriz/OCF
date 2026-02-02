@@ -137,7 +137,7 @@ public class Controllable : MonoBehaviour
 
     public event ScriptValueChangedEvent scriptValueChanged;
     [HideInInspector]
-    [OSCProperty(TargetList = "presetList", IncludeInPresets = false)] public string currentPreset;
+    [OSCProperty(targetList = "presetList", includeInPresets = false)] public string currentPreset;
     [HideInInspector]
     public List<string> presetList;
 
@@ -523,7 +523,7 @@ public class Controllable : MonoBehaviour
     {
         OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
 
-        if (attribute.isInteractible == false)
+        if (attribute.readOnly == true)
             return;
 
         string typeString = info.FieldType.ToString();
@@ -720,7 +720,7 @@ public class Controllable : MonoBehaviour
         foreach (FieldInfo p in Fields.Values)
         {
             OSCProperty attribute = Attribute.GetCustomAttribute(p, typeof(OSCProperty)) as OSCProperty;
-            if (attribute.IncludeInPresets)
+            if (attribute.includeInPresets)
             {
                 if(debug)
                     Debug.Log("Attribute : " + p.Name + " of type " + p.FieldType + " is saved.");
