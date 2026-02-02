@@ -28,8 +28,6 @@ public static class ControllableGenerator
         }
 
         string path = AssetDatabase.GetAssetPath(selected);
-
-        string directory = Path.GetDirectoryName(path);
         string originalName = Path.GetFileNameWithoutExtension(path);
 
         GenerateControllableForScript(originalName, path);
@@ -112,7 +110,10 @@ public class {newName} : Controllable
         if (oscAttributeType == null)
             return "    // ERROR: Could not find OSCExposed attribute.\r\n";
 
-        string result = "";
+        // Separate buckets to ensure methods come last
+        string variableDeclarations = "";
+        string methodDeclarations = "";
+
         BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
         // Get all members to preserve source order
@@ -120,11 +121,8 @@ public class {newName} : Controllable
 
         foreach (var member in members)
         {
-            // Get the specific attribute instance to check properties like readOnly
             Attribute oscExposedInstance = member.GetCustomAttribute(oscAttributeType);
             if (oscExposedInstance == null) continue;
-
-            string memberString = "";
 
             if (member is FieldInfo field)
             {
@@ -134,7 +132,7 @@ public class {newName} : Controllable
                     continue;
                 }
                 string attributes = GetAttributes(field, oscAttributeType, oscExposedInstance);
-                memberString = $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n";
+                variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n\r\n";
             }
             else if (member is PropertyInfo prop)
             {
@@ -147,32 +145,22 @@ public class {newName} : Controllable
                     continue;
                 }
                 string attributes = GetAttributes(prop, oscAttributeType, oscExposedInstance);
-                memberString = $"{attributes}    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n";
+                variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n\r\n";
             }
             else if (member is MethodInfo method)
             {
-                if (!method.IsPublic)
-                {
-                    Debug.LogWarning($"{type.Name}.{method.Name} has [OSCExposed] but is not public. Ignored.");
-                    continue;
-                }
-
-                if (method.IsSpecialName) continue; // skip property accessors
+                if (!method.IsPublic || method.IsSpecialName) continue;
 
                 string returnType = ToFriendlyTypeName(method.ReturnType);
                 ParameterInfo[] parameters = method.GetParameters();
                 string paramList = string.Join(", ", parameters.Select(p => $"{ToFriendlyTypeName(p.ParameterType)} {p.Name}"));
                 string paramNames = string.Join(", ", parameters.Select(p => p.Name));
 
-                memberString = $"\r\n    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        (TargetScript as {type.Name}).{method.Name}({paramNames});\r\n    }}\r\n";
-            }
-
-            if (!string.IsNullOrEmpty(memberString))
-            {
-                // Add the member and an extra empty line for readability
-                result += memberString + "\r\n";
+                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        (TargetScript as {type.Name}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
             }
         }
+
+        string result = variableDeclarations + methodDeclarations;
 
         if (string.IsNullOrWhiteSpace(result))
             result = "    // No public OSCExposed members found.\r\n";
@@ -199,7 +187,7 @@ public class {newName} : Controllable
         if (tooltip != null)
             attributes += $"    [Tooltip(\"{tooltip.tooltip}\")]\r\n";
 
-        // OSCProperty logic: Check for readOnly via reflection on the OSCExposed instance
+        // OSCProperty logic
         bool isReadOnly = false;
         var readOnlyField = oscAttributeType.GetField("readOnly");
         if (readOnlyField != null)
