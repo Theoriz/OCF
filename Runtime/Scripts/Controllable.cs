@@ -905,8 +905,8 @@ public class Controllable : MonoBehaviour
     void UpdateTargetDirectory() {
 
 #if UNITY_STANDALONE || UNITY_EDITOR
-        //Should be cleaned up to find the correct ControllableMaster instance instead of using FindObjectOfType
-        ControllableMaster controllableMaster = FindFirstObjectByType<ControllableMaster>();
+        //TODO: Should be cleaned up to find the correct ControllableMaster instance instead of using FindObjectOfType
+        ControllableMaster controllableMaster = FindAnyObjectByType<ControllableMaster>();
 
         if (controllableMaster && controllableMaster.useDocumentsDirectory)
         {
