@@ -98,6 +98,9 @@ public class {newName} : Controllable
             {
                 Type t = assembly.GetType(typeName);
                 if (t != null) return t;
+
+                t = assembly.GetTypes().FirstOrDefault(x => x.Name == typeName || x.FullName == typeName);
+                if (t != null) return t;
             }
             catch { /* ignore */ }
         }
@@ -156,7 +159,7 @@ public class {newName} : Controllable
                 string paramList = string.Join(", ", parameters.Select(p => $"{ToFriendlyTypeName(p.ParameterType)} {p.Name}"));
                 string paramNames = string.Join(", ", parameters.Select(p => p.Name));
 
-                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        (TargetScript as {type.Name}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
+                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        (TargetScript as {type.FullName}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
             }
         }
 
