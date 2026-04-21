@@ -2,7 +2,7 @@
     "name": "Theoriz.OCF.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:449ae4094c79a1a47ab30accd190c85f"
+        "Theoriz.OCF.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
