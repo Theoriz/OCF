@@ -119,7 +119,7 @@ public class {newName} : Controllable
 
         BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
-        // Get all members to preserve source order
+        // Declared members (fields, properties, methods); fields/properties are emitted before methods below.
         MemberInfo[] members = type.GetMembers(flags);
 
         foreach (var member in members)
@@ -158,8 +158,9 @@ public class {newName} : Controllable
                 ParameterInfo[] parameters = method.GetParameters();
                 string paramList = string.Join(", ", parameters.Select(p => $"{ToFriendlyTypeName(p.ParameterType)} {p.Name}"));
                 string paramNames = string.Join(", ", parameters.Select(p => p.Name));
+                string callPrefix = method.ReturnType == typeof(void) ? "" : "return ";
 
-                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        (TargetScript as {type.FullName}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
+                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        {callPrefix}(TargetScript as {type.FullName}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
             }
         }
 
@@ -178,17 +179,17 @@ public class {newName} : Controllable
         // Header
         var header = member.GetCustomAttribute<HeaderAttribute>();
         if (header != null)
-            attributes += $"    [Header(\"{header.header}\")]\r\n";
+            attributes += $"    [Header(\"{EscapeString(header.header)}\")]\r\n";
 
         // Range
         var range = member.GetCustomAttribute<RangeAttribute>();
         if (range != null)
-            attributes += $"    [Range({range.min}f, {range.max}f)]\r\n";
+            attributes += $"    [Range({range.min.ToString(System.Globalization.CultureInfo.InvariantCulture)}f, {range.max.ToString(System.Globalization.CultureInfo.InvariantCulture)}f)]\r\n";
 
         // Tooltip
         var tooltip = member.GetCustomAttribute<TooltipAttribute>();
         if (tooltip != null)
-            attributes += $"    [Tooltip(\"{tooltip.tooltip}\")]\r\n";
+            attributes += $"    [Tooltip(\"{EscapeString(tooltip.tooltip)}\")]\r\n";
 
         // OSCProperty logic
         bool isReadOnly = false;
@@ -210,6 +211,12 @@ public class {newName} : Controllable
         return attributes;
     }
 
+    private static string EscapeString(string s)
+    {
+        if (s == null) return "";
+        return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    }
+
     private static string ToFriendlyTypeName(Type t)
     {
         if (t == typeof(int)) return "int";
@@ -225,6 +232,14 @@ public class {newName} : Controllable
         if (t.IsArray)
             return ToFriendlyTypeName(t.GetElementType()) + "[]";
 
-        return t.Name;
+        if (t.IsGenericType)
+        {
+            string genericName = t.GetGenericTypeDefinition().FullName;
+            genericName = genericName.Substring(0, genericName.IndexOf('`')).Replace('+', '.');
+            string args = string.Join(", ", t.GetGenericArguments().Select(ToFriendlyTypeName));
+            return $"{genericName}<{args}>";
+        }
+
+        return (t.FullName ?? t.Name).Replace('+', '.');
     }
 }
