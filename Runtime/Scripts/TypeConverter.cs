@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class TypeConverter : MonoBehaviour {
+public static class TypeConverter {
 
     public static int getIndexInEnum(List<string> enumValueList, string selectedElement)
     {

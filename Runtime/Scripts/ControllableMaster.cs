@@ -53,6 +53,13 @@ public class ControllableMaster : MonoBehaviour
         instance = this;
 	}
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        RegisteredControllables.Clear();
+        instance = null;
+    }
+
 	private void Start()
     {
         IPAddress = GetLocalIPAddress();

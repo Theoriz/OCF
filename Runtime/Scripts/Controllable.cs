@@ -68,10 +68,6 @@ public class ClassAttributInfo
 
             return result;
         }
-        set
-        {
-            //this._name = value;
-        }
     }
 
     public object GetValue(object obj)
@@ -435,11 +431,15 @@ public class Controllable : MonoBehaviour
     [OSCMethod]
     public void Show() //Show preset file in explorer
     {
-        if (currentPreset == "") return;
+        if (string.IsNullOrEmpty(currentPreset)) return;
 
         var itemPath = targetDirectory + currentPreset;
         itemPath = itemPath.Replace(@"/", @"\");   // explorer doesn't like front slashes
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         System.Diagnostics.Process.Start("explorer.exe", "/select," + itemPath);
+#else
+        Debug.Log("[OCF] Showing the preset folder is only supported on Windows. Path: " + itemPath);
+#endif
     }
 
     [OSCMethod]
@@ -774,6 +774,10 @@ public class Controllable : MonoBehaviour
                 {
                     data.valueList.Add(((float)p.GetValue(this)).ToString("F8"));
                 }
+                else if (p.FieldType.ToString() == "UnityEngine.Color")
+                {
+                    data.valueList.Add(((Color)p.GetValue(this)).ToString("F8"));
+                }
                 else
                     data.valueList.Add(p.GetValue(this).ToString());
             }
@@ -805,17 +809,20 @@ public class Controllable : MonoBehaviour
                 {
                     var curve = new AnimationCurve();
 
-                    if (tweenStyle == "easeinout")
-                        curve = TweenCurves.Instance.EaseInOutCurve;
-
+                    var tweenCurves = TweenCurves.Instance;
+                    if (tweenCurves == null)
+                    {
+                        Debug.LogWarning("[OCF] No TweenCurves in scene; using a linear tween.");
+                        curve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+                    }
+                    else if (tweenStyle == "easeinout")
+                        curve = tweenCurves.EaseInOutCurve;
                     else if (tweenStyle == "easein")
-                        curve = TweenCurves.Instance.EaseInCurve;
-
+                        curve = tweenCurves.EaseInCurve;
                     else if (tweenStyle == "easeout")
-                        curve = TweenCurves.Instance.EaseOutCurve;
-
+                        curve = tweenCurves.EaseOutCurve;
                     else if (tweenStyle == "linear")
-                        curve = TweenCurves.Instance.LinearCurve;
+                        curve = tweenCurves.LinearCurve;
 
                     StartCoroutine(
                             TweenValue(Fields[dn],
