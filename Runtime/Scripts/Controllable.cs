@@ -119,11 +119,11 @@ public class Controllable : MonoBehaviour
     public bool hasPresets = false;
     public bool closePanelAtStart = true;
 
-    public Dictionary<string, FieldInfo> Fields;
-    public List<object> PreviousFieldsValues;
-    public Dictionary<string, ClassAttributInfo> TargetFields;
+    [System.NonSerialized] public Dictionary<string, FieldInfo> Fields;
+    [System.NonSerialized] public List<object> PreviousFieldsValues;
+    [System.NonSerialized] public Dictionary<string, ClassAttributInfo> TargetFields;
 
-    public Dictionary<string, ClassMethodInfo> Methods;
+    [System.NonSerialized] public Dictionary<string, ClassMethodInfo> Methods;
 
     public delegate void UIValueChangedEvent(string name);
 

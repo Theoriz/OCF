@@ -86,6 +86,12 @@ public class ControllableMaster : MonoBehaviour
 
     private void OnDisable() {
 
+        if (OSCMaster.HasReceiver(OSCReceiverName))
+        {
+            OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
+            OSCMaster.RemoveReceiver(OSCReceiverName);
+        }
+
         CloseZeroconfService();
     }
 
@@ -176,15 +182,6 @@ public class ControllableMaster : MonoBehaviour
                 Debug.LogWarning("Error parsing OCF command ! " + e.Message);
             }
         }
-
-        //if (addressSplit.Length == 1 || addressSplit[1] != "OCF") //If length == 1 then it's not an OSC address, don't process it but propagate anyway
-        //{
-        //    if (messageAvailable != null)
-        //        messageAvailable(m); //propagate the message
-        //}
-        //else //Starts with /OCF/ so it's control
-        //{
-            
 
         if (ShowDebug)
             Debug.Log("Message received for Target : " + target + ", property = " + property);
