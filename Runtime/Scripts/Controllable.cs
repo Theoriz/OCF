@@ -179,6 +179,7 @@ public class Controllable : MonoBehaviour
                 Fields.Add(info.Name, info);
 
                 var fieldAdded = false;
+                var propertyAdded = false;
                 for (int j = 0; j < scriptFields.Length; j++)
                 {
                     if (scriptFields[j].Name == info.Name)
@@ -208,6 +209,7 @@ public class Controllable : MonoBehaviour
                             PreviousFieldsValues.Add(newClassAttributInfo.GetValue(TargetScript));
                             info.SetValue(this, newClassAttributInfo.GetValue(TargetScript));
 
+                            propertyAdded = true;
                             break;
                         }
                     }
@@ -215,6 +217,12 @@ public class Controllable : MonoBehaviour
                 
                 // if(addedFieldName != "")
                 //     PreviousFieldsValues.Add(TargetFields[addedFieldName].GetValue(this));
+
+                if (!fieldAdded && !propertyAdded && info.Name != "currentPreset")
+                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCProperty] '" + info.Name
+                        + "' has no matching public field/property on target '"
+                        + (TargetScript != null ? TargetScript.GetType().Name : "null")
+                        + "'. It will not be controllable.");
             }
         }
 
@@ -236,7 +244,7 @@ public class Controllable : MonoBehaviour
                 classMethodInfo.methodInfo = info;
                 classMethodInfo.fromTargetScript = false;
 
-                var targetScriptMethod = TargetScript.GetType().GetMethod(info.Name);
+                var targetScriptMethod = TargetScript != null ? TargetScript.GetType().GetMethod(info.Name) : null;
                 if (targetScriptMethod != null)
                 {
                     //Debug.Log("Adding : " + targetScriptMethod.Name);
@@ -253,7 +261,7 @@ public class Controllable : MonoBehaviour
         }
 
         if (string.IsNullOrEmpty(id))
-            id = TargetScript.GetType().Name;
+            id = TargetScript != null ? TargetScript.GetType().Name : GetType().Name;
 
         id = id.Replace(' ', '_');
         sourceScene = SceneManager.GetActiveScene().name;
@@ -313,9 +321,10 @@ public class Controllable : MonoBehaviour
             if (value.ToString() != PreviousFieldsValues[i].ToString())
             {
                 //Debug.Log("Target script value : " + value.ToString() + " previous : " + PreviousFieldsValues[i].ToString());
-                if (scriptValueChanged != null) scriptValueChanged(TargetFieldsArray[i].Name);
-                    RaiseEventValueChanged(TargetFieldsArray[i].Name);
-                    PreviousFieldsValues[i] = value;
+                if (scriptValueChanged != null)
+                    scriptValueChanged(TargetFieldsArray[i].Name);
+
+                PreviousFieldsValues[i] = value;
             }
         }
     }
@@ -352,7 +361,7 @@ public class Controllable : MonoBehaviour
         Directory.CreateDirectory(targetDirectory);
         foreach (var t in Directory.GetFiles(targetDirectory))
         {
-            var onlyFileName = t.Split('/').Last();
+            var onlyFileName = Path.GetFileName(t);
             //Don't put temp file in list
             if (onlyFileName == tempFileName || onlyFileName.Split('.').Last() != "pst") continue;
             presetList.Add(onlyFileName);
@@ -398,8 +407,6 @@ public class Controllable : MonoBehaviour
             Debug.Log("Saving in " + targetDirectory + fileName + "...");
         //create file
         if (!Directory.Exists(targetDirectory)) Directory.CreateDirectory(targetDirectory);
-        var file = File.OpenWrite(targetDirectory + fileName);
-        file.Close();
 
         CallMeBeforeSave();
         File.WriteAllText(targetDirectory + fileName, JsonUtility.ToJson(this.getData()));
@@ -535,7 +542,20 @@ public class Controllable : MonoBehaviour
 
         if (isEnum)
         {
-            if (values.Count >= 1) info.SetValue(this, TypeConverter.getIndexInEnum(Enum.GetNames(Type.GetType(typeString)).ToList(), (string)values[0]));
+            if (values.Count >= 1)
+            {
+                var enumType = Type.GetType(typeString);
+                if (enumType == null)
+                {
+                    Debug.LogWarning("[OCF] Could not resolve enum type '" + typeString + "' for " + info.Name + " (move the enum out of a Plugins folder or qualify its assembly).");
+                }
+                else
+                {
+                    var enumIndex = TypeConverter.getIndexInEnum(Enum.GetNames(enumType).ToList(), (string)values[0]);
+                    if (enumIndex >= 0)
+                        info.SetValue(this, enumIndex);
+                }
+            }
         }
         else
         {
@@ -662,7 +682,7 @@ public class Controllable : MonoBehaviour
                     parameters[i] = new Color(TypeConverter.getFloat(values[valueIndex + 0]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), TypeConverter.getFloat(values[valueIndex + 3]));
                     valueIndex += 4;
                 }
-                else if (values.Count >= i + 3)
+                else if (values.Count >= valueIndex + 3)
                 {
                     parameters[i] = new Color(TypeConverter.getFloat(values[valueIndex + 0]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), 1);
                     valueIndex += 3;
@@ -673,7 +693,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 1)
                 {
-                    parameters[i] = values[i].ToString();
+                    parameters[i] = values[valueIndex].ToString();
                     valueIndex += 1;
                 }
             }
@@ -926,9 +946,6 @@ public class Controllable : MonoBehaviour
     {
         if (!string.IsNullOrEmpty(currentPreset))
         {
-            //Create temp file
-            var tempFile = File.OpenWrite(targetDirectory + tempFileName);
-            tempFile.Close();
             //write last loaded preset
             File.WriteAllText(targetDirectory + tempFileName, currentPreset);
         }

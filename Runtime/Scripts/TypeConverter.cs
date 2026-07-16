@@ -40,7 +40,7 @@ public class TypeConverter : MonoBehaviour {
         if (t == typeof(string))
         {
             float result = 0;
-            float.TryParse((string)value, out result);
+            float.TryParse((string)value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out result);
             return result;
         }
 
@@ -64,7 +64,7 @@ public class TypeConverter : MonoBehaviour {
                 return false;
 
             int result = 0;
-            int.TryParse((string)value, out result);
+            int.TryParse((string)value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out result);
 
             return result >= 1;
         }
@@ -80,7 +80,7 @@ public class TypeConverter : MonoBehaviour {
         if (t == typeof(string))
         {
             int result = 0;
-            int.TryParse((string)value, out result);
+            int.TryParse((string)value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out result);
             return result;
         }
         if (t == typeof(bool)) return (bool)value ? 1 : 0;
@@ -100,6 +100,12 @@ public class TypeConverter : MonoBehaviour {
         string[] sArray = sColor.Split(',');
 
         // store as a Vector3
+        if (sArray.Length < 4)
+        {
+            Debug.LogWarning("[OCF] StringToColor: malformed color string '" + sColor + "'");
+            return Color.black;
+        }
+
         Color result = new Color(
             float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
             float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
@@ -123,6 +129,12 @@ public class TypeConverter : MonoBehaviour {
         string[] sArray = sVector.Split(',');
 
         // store as a Vector3
+        if (sArray.Length < 2)
+        {
+            Debug.LogWarning("[OCF] StringToVector2: malformed string '" + sVector + "'");
+            return Vector2.zero;
+        }
+
         Vector2 result = new Vector2(
             float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
             float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture)
@@ -141,6 +153,12 @@ public class TypeConverter : MonoBehaviour {
         string[] sArray = sVector.Split(',');
 
         // store as a Vector2Int
+        if (sArray.Length < 2)
+        {
+            Debug.LogWarning("[OCF] StringToVector2Int: malformed string '" + sVector + "'");
+            return Vector2Int.zero;
+        }
+
         Vector2Int result = new Vector2Int(
             int.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
             int.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture)
@@ -161,6 +179,12 @@ public class TypeConverter : MonoBehaviour {
         string[] sArray = sVector.Split(',');
 
         // store as a Vector3
+        if (sArray.Length < 3)
+        {
+            Debug.LogWarning("[OCF] StringToVector3: malformed string '" + sVector + "'");
+            return Vector3.zero;
+        }
+
         Vector3 result = new Vector3(
             float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
             float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
@@ -179,6 +203,12 @@ public class TypeConverter : MonoBehaviour {
         string[] sArray = sVector.Split(',');
 
         // store as a Vector3Int
+        if (sArray.Length < 3)
+        {
+            Debug.LogWarning("[OCF] StringToVector3Int: malformed string '" + sVector + "'");
+            return Vector3Int.zero;
+        }
+
         Vector3Int result = new Vector3Int(
             int.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
             int.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),

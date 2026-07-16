@@ -14,6 +14,8 @@ public class ControllableMaster : MonoBehaviour
     public bool IsConnected;
 
     public bool IncrementalConnect = true;
+    public int maxConnectAttempts = 100;
+    private int _connectAttempts;
     public bool useDocumentsDirectory = false;
     public bool ShowDebug;
     public string OSCReceiverName;
@@ -34,8 +36,6 @@ public class ControllableMaster : MonoBehaviour
     }
 
     public string IPAddress;
-    public float ipRefreshDelay;
-    private float _lastIPUpdate;
 
     public static Dictionary<string, Controllable> RegisteredControllables = new Dictionary<string, Controllable>();
 
@@ -62,15 +62,26 @@ public class ControllableMaster : MonoBehaviour
 
     private void Update()
     {
-        if (Time.time - _lastIPUpdate > ipRefreshDelay)
+        if (!IsConnected && IncrementalConnect)
         {
-            _lastIPUpdate = Time.time;
-            IPAddress = GetLocalIPAddress();
+            if (_connectAttempts < maxConnectAttempts)
+            {
+                _connectAttempts++;
+                OSCInputPort++; // setter calls Connect()
+                if (_connectAttempts >= maxConnectAttempts)
+                    Debug.LogWarning("[OCF] ControllableMaster could not open an OSC input port after "
+                        + maxConnectAttempts + " attempts (last tried " + OSCInputPort + "). Giving up.");
+            }
         }
+        else if (IsConnected)
+        {
+            _connectAttempts = 0;
+        }
+    }
 
-        if(!IsConnected && IncrementalConnect) {
-            OSCInputPort++;
-        }
+    public void RefreshIP()
+    {
+        IPAddress = GetLocalIPAddress();
     }
 
     private void OnDisable() {
@@ -118,13 +129,9 @@ public class ControllableMaster : MonoBehaviour
 
     void processMessage(OSCMessage m)
     {
-        //if (m == null)
-        //    return;
-        //if (string.IsNullOrEmpty(m.Address))
-        //    return;
+        if (m == null || string.IsNullOrEmpty(m.Address))
+            return;
 
-        //if (ShowDebug)
-        //    Debug.Log("Received : " + m.Address + " " + m.Data);
         string[] addressSplit = m.Address.Split(new char[] { '/' });
 
         string target = "";
@@ -135,6 +142,9 @@ public class ControllableMaster : MonoBehaviour
 
         if (!string.IsNullOrEmpty(RootOSCAddress))
         {
+            if (addressSplit.Length < 4)
+                return;
+
             if (addressSplit[1] != RootOSCAddress)
             {
                 Debug.LogWarning("Message address[1] different from " + RootOSCAddress);
@@ -153,6 +163,9 @@ public class ControllableMaster : MonoBehaviour
         }
         else
         {
+            if (addressSplit.Length < 3)
+                return;
+
             try
             {
                 target = addressSplit[1];
