@@ -125,6 +125,9 @@ public class Controllable : MonoBehaviour
 
     [System.NonSerialized] public Dictionary<string, ClassMethodInfo> Methods;
 
+    // Snapshot of TargetFields.Values in insertion order, aligned index-for-index with PreviousFieldsValues; iterated in Update to detect target-script changes.
+    private ClassAttributInfo[] _targetFieldsArray;
+
     public delegate void UIValueChangedEvent(string name);
 
     public event UIValueChangedEvent uiValueChanged;
@@ -226,6 +229,8 @@ public class Controllable : MonoBehaviour
             }
         }
 
+        _targetFieldsArray = TargetFields.Values.ToArray();
+
         //METHODS
         Methods = new Dictionary<string, ClassMethodInfo>();
 
@@ -312,17 +317,18 @@ public class Controllable : MonoBehaviour
 
 	public virtual void Update() //Warn UI if attribut changes
     {
-        var TargetFieldsArray = TargetFields.Values.ToArray();
-        
-        for (var i=0 ; i< TargetFieldsArray.Length ; i++)
-        {
-            var value = TargetFieldsArray[i].GetValue(TargetScript);
+        if (_targetFieldsArray == null)
+            return;
 
-            if (value.ToString() != PreviousFieldsValues[i].ToString())
+        for (var i = 0; i < _targetFieldsArray.Length; i++)
+        {
+            var value = _targetFieldsArray[i].GetValue(TargetScript);
+
+            if (!object.Equals(value, PreviousFieldsValues[i]))
             {
                 //Debug.Log("Target script value : " + value.ToString() + " previous : " + PreviousFieldsValues[i].ToString());
                 if (scriptValueChanged != null)
-                    scriptValueChanged(TargetFieldsArray[i].Name);
+                    scriptValueChanged(_targetFieldsArray[i].Name);
 
                 PreviousFieldsValues[i] = value;
             }
