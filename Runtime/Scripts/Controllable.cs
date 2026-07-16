@@ -532,6 +532,17 @@ public class Controllable : MonoBehaviour
         }
     }
 
+    // A [Range] on the mirrored field is a declared constraint on the value, so it is enforced
+    // here for every source (OSC, presets, UI) rather than only by the slider widget.
+    static float ClampToRange(FieldInfo info, float value)
+    {
+        var range = Attribute.GetCustomAttribute(info, typeof(RangeAttribute)) as RangeAttribute;
+        if (range == null)
+            return value;
+
+        return Mathf.Clamp(value, range.min, range.max);
+    }
+
     public void setFieldProp(FieldInfo info, List<object> values, bool isEnum = false)
     {
         OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
@@ -567,7 +578,7 @@ public class Controllable : MonoBehaviour
         {
             if (typeString == "System.Single")
             {
-                if (values.Count >= 1) info.SetValue(this, TypeConverter.getFloat(values[0]));
+                if (values.Count >= 1) info.SetValue(this, ClampToRange(info, TypeConverter.getFloat(values[0])));
             }
             else if (typeString == "System.Boolean")
             {
@@ -575,7 +586,7 @@ public class Controllable : MonoBehaviour
             }
             else if (typeString == "System.Int32")
             {
-                if (values.Count >= 1) info.SetValue(this, TypeConverter.getInt(values[0]));
+                if (values.Count >= 1) info.SetValue(this, (int)ClampToRange(info, TypeConverter.getInt(values[0])));
             }
             else if (typeString == "UnityEngine.Vector2")
             {
