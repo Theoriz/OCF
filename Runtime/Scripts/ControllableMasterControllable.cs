@@ -19,6 +19,12 @@ public class ControllableMasterControllable : Controllable {
 
 
     [OSCMethod]
+    public void RefreshIP()
+    {
+        (TargetScript as ControllableMaster).RefreshIP();
+    }
+
+    [OSCMethod]
     public void SaveAll()
     {
         ControllableMaster.SaveAllPresets();

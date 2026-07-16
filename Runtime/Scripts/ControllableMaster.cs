@@ -102,7 +102,9 @@ public class ControllableMaster : MonoBehaviour
         {
             if (ip.AddressFamily == AddressFamily.InterNetwork)
             {
-                return ip.ToString();
+                string IPAddress = ip.ToString();
+                Debug.Log("[OCF] Using local IP address "+IPAddress+".");
+                return IPAddress;
             }
         }
         return "Not connected.";
