@@ -127,6 +127,15 @@ public class {newName} : Controllable
             Attribute oscExposedInstance = member.GetCustomAttribute(oscAttributeType);
             if (oscExposedInstance == null) continue;
 
+            //The mirror derives from Controllable, so a member of the same name would shadow the real
+            //one: a 'Save' would disable preset handling, an 'id' would break OSC addressing.
+            if (Controllable.IsReservedMemberName(member.Name))
+            {
+                Debug.LogError($"{type.Name}.{member.Name} has [OSCExposed] but collides with a member "
+                    + "Controllable already declares. Skipped - rename it to expose it.");
+                continue;
+            }
+
             if (member is FieldInfo field)
             {
                 if (!field.IsPublic)

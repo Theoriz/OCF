@@ -175,6 +175,19 @@ public class Controllable : MonoBehaviour
             {
                 if (info.Name == "currentPreset" && !usePresets) continue;
 
+                //Unlike a method, a shadowing field cannot be worked around at runtime: it really
+                //exists on the derived class and Unity serializes it, while Controllable's own code
+                //keeps reading the base field. All that can be done is report it.
+                if (info.DeclaringType != typeof(Controllable) && _reservedMemberNames.Contains(info.Name))
+                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCProperty] '" + info.Name
+                        + "' shadows a member Controllable already declares. The real member is now "
+                        + "unreachable and may misbehave - rename it.");
+
+                //A shadowed base field can surface here alongside the one that shadows it; both carry
+                //the same name and only one OSC address exists. The warning above already reported it.
+                if (Fields.ContainsKey(info.Name))
+                    continue;
+
                 Fields.Add(info.Name, info);
 
                 var fieldAdded = false;
@@ -230,6 +243,22 @@ public class Controllable : MonoBehaviour
         //METHODS
         Methods = new Dictionary<string, ClassMethodInfo>();
 
+        //Controllable's own [OSCMethod] members are registered straight from typeof(Controllable) and
+        //never consult TargetScript, so a target script's same-named method cannot displace them.
+        //They are taken from the base type rather than from this.GetType()'s method list because a
+        //derived class declaring the same signature hides the base method from GetMethods entirely.
+        foreach (var builtIn in typeof(Controllable).GetMethods(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (Attribute.GetCustomAttribute(builtIn, typeof(OSCMethod)) == null) continue;
+            if (Array.IndexOf(PresetMethodNames, builtIn.Name) >= 0 && !usePresets) continue;
+
+            var builtInMethodInfo = new ClassMethodInfo();
+            builtInMethodInfo.methodInfo = builtIn;
+            builtInMethodInfo.fromTargetScript = false;
+
+            Methods.Add(builtIn.Name, builtInMethodInfo);
+        }
+
         MethodInfo[] methodFields = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
 
         for (int i = 0; i < methodFields.Length; i++)
@@ -238,26 +267,43 @@ public class Controllable : MonoBehaviour
             OSCMethod attribute = Attribute.GetCustomAttribute(info, typeof(OSCMethod)) as OSCMethod;
             if (attribute != null)
             {
-                if(Array.IndexOf(PresetMethodNames, info.Name) >= 0 && !usePresets) continue;
-                //Debug.Log("Testing : " + info.Name);
+                //Already registered above, from the base type.
+                if (_builtInOSCMethodNames.Contains(info.Name))
+                {
+                    if (info.DeclaringType != typeof(Controllable))
+                        Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCMethod] '" + info.Name
+                            + "' reuses the name of a built-in Controllable method. It is ignored and "
+                            + "the built-in is used instead - rename it if you want it exposed.");
+                    continue;
+                }
+
+                if (Methods.ContainsKey(info.Name))
+                {
+                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCMethod] '" + info.Name
+                        + "' is declared more than once (overloads share a single OSC address). "
+                        + "Only the first is exposed - rename the others.");
+                    continue;
+                }
 
                 var classMethodInfo = new ClassMethodInfo();
                 classMethodInfo.methodInfo = info;
                 classMethodInfo.fromTargetScript = false;
 
-                var targetScriptMethod = TargetScript != null ? TargetScript.GetType().GetMethod(info.Name) : null;
+                //Matched on signature, not just name: a target's Foo(int) must not bind to a
+                //parameterless Foo(), and a name-only lookup throws on overloaded targets.
+                var parameterTypes = info.GetParameters().Select(p => p.ParameterType).ToArray();
+                var targetScriptMethod = TargetScript != null
+                    ? TargetScript.GetType().GetMethod(info.Name,
+                        BindingFlags.Instance | BindingFlags.Public, null, parameterTypes, null)
+                    : null;
+
                 if (targetScriptMethod != null)
                 {
-                    //Debug.Log("Adding : " + targetScriptMethod.Name);
                     classMethodInfo.methodInfo = targetScriptMethod;
                     classMethodInfo.fromTargetScript = true;
+                }
 
-                    Methods.Add(targetScriptMethod.Name, classMethodInfo);
-                }
-                else
-                {
-                    Methods.Add(info.Name, classMethodInfo);
-                }
+                Methods.Add(info.Name, classMethodInfo);
             }
         }
 
@@ -380,6 +426,29 @@ public class Controllable : MonoBehaviour
     //The preset methods below, by name. Callers identify preset buttons/methods by matching against
     //this rather than their displayed label, which is a derived string (see GenUI's ParseNameString).
     public static readonly string[] PresetMethodNames = { "Save", "SaveAs", "Load", "Show" };
+
+    //Controllable's own [OSCMethod] members: the four preset methods plus LoadWithName. These are
+    //always bound to Controllable's implementation, never to a target script's same-named method.
+    static readonly HashSet<string> _builtInOSCMethodNames = new HashSet<string>(
+        typeof(Controllable).GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(m => Attribute.GetCustomAttribute(m, typeof(OSCMethod)) != null)
+            .Select(m => m.Name));
+
+    //Every public member Controllable exposes, including those inherited from MonoBehaviour (name,
+    //tag, transform, enabled...). A mirror declaring any of these names shadows the real member.
+    static readonly HashSet<string> _reservedMemberNames = new HashSet<string>(
+        typeof(Controllable).GetMembers(BindingFlags.Instance | BindingFlags.Public)
+            .Select(m => m.Name));
+
+    /// <summary>
+    /// True if <paramref name="name"/> is the name of a member Controllable already exposes.
+    /// An [OSCExposed] member must not reuse one: the generated mirror would declare a member of the
+    /// same name, shadowing the real one and breaking it silently.
+    /// </summary>
+    public static bool IsReservedMemberName(string name)
+    {
+        return _reservedMemberNames.Contains(name);
+    }
 
     [OSCMethod]
     public void Save()
