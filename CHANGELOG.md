@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0] - 2026-07-17
+
+### Added
+
+- Controllable.PresetMethodNames and ControllableMasterControllable.AllPresetMethodNames: the preset method names, so consumers identify preset methods by name instead of by displayed label.
+- Controllable.IsReservedMemberName: reports whether a name is already used by a member of Controllable, and so may not be reused by an [OSCExposed] member.
+- ControllableGenerator refuses to emit an [OSCExposed] member whose name collides with a member of Controllable, and logs an error naming it. A hand-written mirror that collides logs a warning during Awake.
+- README documents exposing members, the mirror pattern, the [OSCProperty] options, reserved names, OSC addressing and presets. It previously covered installation only.
+- EditMode and PlayMode tests covering the name constants, the reserved-name query and member name collisions.
+
+### Changed
+
+- Controllable's own [OSCMethod] members (Save, SaveAs, Load, Show, LoadWithName) are always bound to Controllable's implementation and never to a target script's same-named method. **This is a behavior change:** a target script that relied on its own Save being invoked by the preset button will no longer be called. Rename the method to expose it.
+- Methods on the target script are matched on signature, not on name alone.
+
+### Fixed
+
+- Any public method named Save, SaveAs, Load, Show or LoadWithName on a target script silently replaced Controllable's own — no [OSCExposed] and no matching signature required — so preset saving stopped working for that controllable with no warning at any layer.
+- A mirror declaring an [OSCProperty] named currentPreset threw an ArgumentException during Awake.
+- A mirror overloading one of Controllable's [OSCMethod] members threw an ArgumentException during Awake.
+- Looking up a target script method no longer binds a mismatched signature, and no longer throws an AmbiguousMatchException when the target declares overloads.
+
 ## [1.1.0] - 2026-07-16
 
 ### Added
