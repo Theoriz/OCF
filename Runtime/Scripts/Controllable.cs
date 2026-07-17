@@ -238,7 +238,7 @@ public class Controllable : MonoBehaviour
             OSCMethod attribute = Attribute.GetCustomAttribute(info, typeof(OSCMethod)) as OSCMethod;
             if (attribute != null)
             {
-                if((info.Name == "Save" || info.Name == "SaveAs" || info.Name == "Load" || info.Name == "Show") && !usePresets) continue;
+                if(Array.IndexOf(PresetMethodNames, info.Name) >= 0 && !usePresets) continue;
                 //Debug.Log("Testing : " + info.Name);
 
                 var classMethodInfo = new ClassMethodInfo();
@@ -376,6 +376,10 @@ public class Controllable : MonoBehaviour
         if (scriptValueChanged != null) scriptValueChanged("currentPreset");
         RaiseEventValueChanged("currentPreset");
     }
+
+    //The preset methods below, by name. Callers identify preset buttons/methods by matching against
+    //this rather than their displayed label, which is a derived string (see GenUI's ParseNameString).
+    public static readonly string[] PresetMethodNames = { "Save", "SaveAs", "Load", "Show" };
 
     [OSCMethod]
     public void Save()

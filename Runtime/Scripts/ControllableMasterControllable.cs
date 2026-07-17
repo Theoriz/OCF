@@ -24,6 +24,11 @@ public class ControllableMasterControllable : Controllable {
         (TargetScript as ControllableMaster).RefreshIP();
     }
 
+    //The global preset methods below, by name. These exist only on this class, so matching a button
+    //by name alone is not enough to identify one — a target script may legitimately expose its own
+    //SaveAll. Callers must also check the controllable is a ControllableMasterControllable.
+    public static readonly string[] AllPresetMethodNames = { "SaveAll", "SaveAsAll", "LoadAll" };
+
     [OSCMethod]
     public void SaveAll()
     {
