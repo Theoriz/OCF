@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Vector4 support: `TypeConverter.StringToVector4`, and `Vector4` handling in `setFieldProp`, `setMethodProp` and `getData`.
 - `[OSCMethod(showInUI = false)]`: keeps a method OSC-callable but suppresses its generated UI button.
+- `keywords` in package.json, matching the other Theoriz packages.
 
 ### Changed
 
