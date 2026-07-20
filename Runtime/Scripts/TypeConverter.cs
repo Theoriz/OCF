@@ -26,6 +26,7 @@ public static class TypeConverter {
         if (typeString == "UnityEngine.Vector2Int") return StringToVector2Int(value);
         if (typeString == "UnityEngine.Vector3") return StringToVector3(value);
         if (typeString == "UnityEngine.Vector3Int") return StringToVector3Int(value);
+        if (typeString == "UnityEngine.Vector4") return StringToVector4(value);
         if (typeString == "UnityEngine.Color") return StringToColor(value);
         if (typeString == "System.String") return value;
 
@@ -189,6 +190,33 @@ public static class TypeConverter {
             float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
             float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
             float.Parse(sArray[2], System.Globalization.CultureInfo.InvariantCulture));
+
+        return result;
+    }
+
+    public static Vector4 StringToVector4(string sVector)
+    {
+        // Remove the parentheses
+        if (sVector.StartsWith("(") && sVector.EndsWith(")"))
+        {
+            sVector = sVector.Substring(1, sVector.Length - 2);
+        }
+
+        // split the items
+        string[] sArray = sVector.Split(',');
+
+        // store as a Vector4
+        if (sArray.Length < 4)
+        {
+            Debug.LogWarning("[OCF] StringToVector4: malformed string '" + sVector + "'");
+            return Vector4.zero;
+        }
+
+        Vector4 result = new Vector4(
+            float.Parse(sArray[0], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[1], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[2], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(sArray[3], System.Globalization.CultureInfo.InvariantCulture));
 
         return result;
     }

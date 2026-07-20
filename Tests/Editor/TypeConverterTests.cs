@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Threading;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Theoriz.OCF.Tests.Editor
 {
@@ -54,6 +56,21 @@ namespace Theoriz.OCF.Tests.Editor
         {
             var v = TypeConverter.StringToVector3("(1.5, -2.25, 3)");
             Assert.AreEqual(new Vector3(1.5f, -2.25f, 3f), v);
+        }
+
+        [Test]
+        public void StringToVector4_ParsesInvariantly()
+        {
+            var v = TypeConverter.StringToVector4("(1.5, -2.25, 3, 4.75)");
+            Assert.AreEqual(new Vector4(1.5f, -2.25f, 3f, 4.75f), v);
+        }
+
+        [Test]
+        public void StringToVector4_Malformed_ReturnsZero_AndWarns()
+        {
+            LogAssert.Expect(LogType.Warning, new Regex("StringToVector4: malformed string"));
+            var v = TypeConverter.StringToVector4("(1, 2, 3)");
+            Assert.AreEqual(Vector4.zero, v);
         }
 
         [Test]

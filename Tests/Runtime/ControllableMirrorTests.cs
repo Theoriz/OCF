@@ -20,6 +20,18 @@ namespace Theoriz.OCF.Tests
         [OSCProperty] public float myValue;
     }
 
+    /// <summary>Target with a Vector4 field, to exercise the Vector4 preset round-trip.</summary>
+    public class Vector4MirrorTarget : MonoBehaviour
+    {
+        public Vector4 vec;
+    }
+
+    /// <summary>Mirror exposing a Vector4 [OSCProperty].</summary>
+    public class Vector4MirrorControllable : Controllable
+    {
+        [OSCProperty] public Vector4 vec;
+    }
+
     /// <summary>
     /// PlayMode tests for the Controllable "mirror" pattern.
     ///
@@ -78,6 +90,32 @@ namespace Theoriz.OCF.Tests
                 "controllableValueChanged should fire exactly once per target change " +
                 "(known bug: it currently fires twice because Update() raises it directly " +
                 "and again via scriptValueChanged → OnScriptValueChanged).");
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Vector4Property_RoundTripsThrough_GetData_LoadData()
+        {
+            var go = new GameObject("vec4-test");
+            go.SetActive(false);
+            var target = go.AddComponent<Vector4MirrorTarget>();
+            var ctrl = go.AddComponent<Vector4MirrorControllable>();
+            ctrl.TargetScript = target;
+            ctrl.usePresets = false;
+            go.SetActive(true); // Awake() binds the mirror
+            yield return null;
+
+            var expected = new Vector4(1.5f, -2.25f, 3f, 4.75f);
+            ctrl.vec = expected;
+
+            var data = (ControllableData)ctrl.getData();
+            ctrl.vec = Vector4.zero;
+            ctrl.loadData(data);
+
+            Assert.AreEqual(expected, ctrl.vec,
+                "A Vector4 [OSCProperty] should survive a getData/loadData round-trip.");
 
             Object.Destroy(go);
             yield return null;

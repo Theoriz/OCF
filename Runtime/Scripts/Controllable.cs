@@ -676,11 +676,16 @@ public class Controllable : MonoBehaviour
                 if (values.Count == 1) info.SetValue(this, (Vector3)values[0]);
                 if (values.Count >= 3) info.SetValue(this, new Vector3(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2])));
             } 
-            else if (typeString == "UnityEngine.Vector3Int") 
+            else if (typeString == "UnityEngine.Vector3Int")
             {
                 if (values.Count == 1) info.SetValue(this, (Vector3Int)values[0]);
                 if (values.Count >= 3) info.SetValue(this, new Vector3Int(TypeConverter.getInt(values[0]), TypeConverter.getInt(values[1]), TypeConverter.getInt(values[2])));
-            } 
+            }
+            else if (typeString == "UnityEngine.Vector4")
+            {
+                if (values.Count == 1) info.SetValue(this, (Vector4)values[0]);
+                if (values.Count >= 4) info.SetValue(this, new Vector4(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), TypeConverter.getFloat(values[3])));
+            }
             else if (typeString == "UnityEngine.Color")
             {
                 if (values.Count == 1) info.SetValue(this, (Color)values[0]);
@@ -757,14 +762,22 @@ public class Controllable : MonoBehaviour
                     valueIndex += 3;
                 }
             } 
-            else if (typeString == "UnityEngine.Vector3Int") 
+            else if (typeString == "UnityEngine.Vector3Int")
             {
-                if (values.Count >= valueIndex + 3) 
+                if (values.Count >= valueIndex + 3)
                 {
                     parameters[i] = new Vector3Int(TypeConverter.getInt(values[valueIndex]), TypeConverter.getInt(values[valueIndex + 1]), TypeConverter.getInt(values[valueIndex + 2]));
                     valueIndex += 3;
                 }
-            } 
+            }
+            else if (typeString == "UnityEngine.Vector4")
+            {
+                if (values.Count >= valueIndex + 4)
+                {
+                    parameters[i] = new Vector4(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), TypeConverter.getFloat(values[valueIndex + 3]));
+                    valueIndex += 4;
+                }
+            }
             else if (typeString == "UnityEngine.Color")
             {
                 if (values.Count >= valueIndex + 4)
@@ -841,11 +854,15 @@ public class Controllable : MonoBehaviour
                 if (p.FieldType.ToString() == "UnityEngine.Vector3")
                 {
                     data.valueList.Add(((Vector3) p.GetValue(this)).ToString("F8"));
-                } 
-                else if (p.FieldType.ToString() == "UnityEngine.Vector3Int") 
+                }
+                else if (p.FieldType.ToString() == "UnityEngine.Vector4")
+                {
+                    data.valueList.Add(((Vector4)p.GetValue(this)).ToString("F8"));
+                }
+                else if (p.FieldType.ToString() == "UnityEngine.Vector3Int")
                 {
                     data.valueList.Add(((Vector3Int)p.GetValue(this)).ToString());
-                } 
+                }
                 else if (p.FieldType.ToString() == "UnityEngine.Vector2") 
                 {
                     data.valueList.Add(((Vector2)p.GetValue(this)).ToString("F8"));

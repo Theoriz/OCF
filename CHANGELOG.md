@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Vector4 support: `TypeConverter.StringToVector4`, and `Vector4` handling in `setFieldProp`, `setMethodProp` and `getData`.
+
 ### Removed
 
 - Preset tweening: removed the `TweenCurves` class and the `duration` / `tweenStyle` parameters from `LoadWithName` and `loadData`; presets now apply instantly. OSC callers degrade gracefully (extra `LoadWithName` args are ignored, not an error); saved `.pst` files are unaffected.
