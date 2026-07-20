@@ -143,16 +143,12 @@ OSCMaster.Receivers["myReceiver"].messageReceived += (OSCMessage m) => Debug.Log
 To load a specific file, use the `LoadWithName` method:
 
 ```
-/OCF/{id}/LoadWithName "myPreset.pst" 2.0 "EaseInOut"
+/OCF/{id}/LoadWithName "myPreset.pst"
 ```
 
 | Argument | Type | Meaning |
 |---|---|---|
 | `fileName` | string | Case-sensitive file name. |
-| `duration` | float | Tween duration in seconds. Omit or `0` to apply instantly. |
-| `tweenStyle` | string | `Linear`, `EaseIn`, `EaseOut` or `EaseInOut`. Case-insensitive. |
-
-Tweening needs a `TweenCurves` component in the scene; without one it falls back to a linear tween.
 
 To keep a member out of saved presets, set `includeInPresets = false` on its `[OSCProperty]`.
 

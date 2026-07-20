@@ -516,20 +516,20 @@ public class Controllable : MonoBehaviour
     }
 
     [OSCMethod]
-    public void LoadWithName(string fileName, float duration = 0, string tweenStyle = null)
+    public void LoadWithName(string fileName)
     {
         if (!fileName.EndsWith(".pst"))
             fileName += ".pst";
 
         if (debug)
-            Debug.Log("Loading " + fileName + " preset for " + id + " with " + (tweenStyle == null ? " no tween " : tweenStyle));
+            Debug.Log("Loading " + fileName + " preset for " + id);
 
         StreamReader file;
         try
         {
             file = new StreamReader(targetDirectory + fileName);
             ControllableData cData = JsonUtility.FromJson<ControllableData>(file.ReadLine());
-            loadData(cData, duration, tweenStyle);
+            loadData(cData);
             file.Close();
         }
         catch (Exception e)
@@ -870,153 +870,32 @@ public class Controllable : MonoBehaviour
         return data;
     }
 
-    public void loadData(ControllableData data, float duration = 0, string tweenStyle = null)
+    public void loadData(ControllableData data)
     {
-        
-        if (tweenStyle != null)
-        {
-            tweenStyle = tweenStyle.ToLower();
-            if (tweenStyle != "easeout" && tweenStyle != "easein" && tweenStyle != "easeinout" && tweenStyle != "linear")
-            {
-                Debug.LogWarning("Unknow tween style !");
-                tweenStyle = null;
-            }
-        }
-
         int index = 0;
         foreach (string dn in data.nameList)
         {
             FieldInfo info;
             if (Fields.TryGetValue(dn, out info))
             {
-                if (tweenStyle != null)
+                List<object> values = new List<object>();
+                var convertedObject = TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]);
+
+                if (convertedObject == null) //Might be an enum
                 {
-                    var curve = new AnimationCurve();
-
-                    var tweenCurves = TweenCurves.Instance;
-                    if (tweenCurves == null)
-                    {
-                        Debug.LogWarning("[OCF] No TweenCurves in scene; using a linear tween.");
-                        curve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
-                    }
-                    else if (tweenStyle == "easeinout")
-                        curve = tweenCurves.EaseInOutCurve;
-                    else if (tweenStyle == "easein")
-                        curve = tweenCurves.EaseInCurve;
-                    else if (tweenStyle == "easeout")
-                        curve = tweenCurves.EaseOutCurve;
-                    else if (tweenStyle == "linear")
-                        curve = tweenCurves.LinearCurve;
-
-                    StartCoroutine(
-                            TweenValue(Fields[dn],
-                                TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]),
-                                duration,
-                                curve)
-                            );
+                    values.Add(data.valueList[index]);
+                    setFieldProp(Fields[dn], values, true);
                 }
                 else
                 {
-                    List<object> values = new List<object>();
-                    var convertedObject = TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]);
-
-                    if (convertedObject == null) //Might be an enum
-                    {
-                        values.Add(data.valueList[index]);
-                        setFieldProp(Fields[dn], values, true);
-                    }
-                    else
-                    {
-                        values.Add(convertedObject);
-                        setFieldProp(Fields[dn], values);
-                    }
+                    values.Add(convertedObject);
+                    setFieldProp(Fields[dn], values);
                 }
             }
 
             index++;
         }
-        StartCoroutine(CallAfterDuration(DataLoaded, duration));
-        
-    }
-
-    IEnumerator CallAfterDuration(Action callback, float duration)
-    {
-        var currentTime = 0.0f;
-        while (currentTime < duration)
-        {
-            currentTime += Time.deltaTime;
-            yield return new WaitForFixedUpdate();
-        }
-
-        callback();
-    }
-
-    IEnumerator TweenValue(FieldInfo fieldInfo, object end, float duration, AnimationCurve curve)
-    {
-        var currentTime = 0f;
-        var startValue = fieldInfo.GetValue(this);
-        while (currentTime < duration)
-        {
-            List<object> values = new List<object>();
-            //            Debug.Log(fieldInfo.FieldType.ToString() );
-            if (fieldInfo.FieldType.ToString() == "System.Single")
-            {
-                values.Add(Mathf.Lerp((float)startValue, (float)end, curve.Evaluate(currentTime / duration)));
-            }
-
-            else if (fieldInfo.FieldType.ToString() == "System.Int32")
-            {
-                values.Add((int)Mathf.Lerp((int)startValue, (int)end, curve.Evaluate(currentTime / duration)));
-            }
-
-            else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector2")
-            {
-                values.Add(Vector2.Lerp((Vector2)startValue, (Vector2)end, curve.Evaluate(currentTime / duration)));
-            } 
-            
-            else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector2Int") 
-            {
-                Vector2Int startValueVector = (Vector2Int)startValue;
-                Vector2Int endVector = (Vector2Int)end;
-
-                values.Add(new Vector2Int(
-                    (int)Mathf.Lerp(startValueVector.x, endVector.x, curve.Evaluate(currentTime / duration)), 
-                    (int)Mathf.Lerp(startValueVector.y, endVector.y, curve.Evaluate(currentTime / duration))));
-            } 
-            
-            else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector3")
-            {
-                values.Add(Vector3.Lerp((Vector3)startValue, (Vector3)end, curve.Evaluate(currentTime / duration)));
-            } 
-            
-            else if (fieldInfo.FieldType.ToString() == "UnityEngine.Vector3Int") 
-            {
-                Vector3Int startValueVector = (Vector3Int)startValue;
-                Vector3Int endVector = (Vector3Int)end;
-
-                values.Add(new Vector3Int(
-                    (int)Mathf.Lerp(startValueVector.x, endVector.x, curve.Evaluate(currentTime / duration)),
-                    (int)Mathf.Lerp(startValueVector.y, endVector.y, curve.Evaluate(currentTime / duration)),
-                    (int)Mathf.Lerp(startValueVector.z, endVector.z, curve.Evaluate(currentTime / duration))));
-            } 
-            
-            else if (fieldInfo.FieldType.ToString() == "UnityEngine.Color")
-            {
-                values.Add(Color.Lerp((Color)startValue, (Color)end, curve.Evaluate(currentTime / duration)));
-            }
-            else
-            {
-                break;
-            }
-            setFieldProp(fieldInfo, values);
-            currentTime += Time.deltaTime;
-
-            yield return new WaitForFixedUpdate();
-        }
-
-        List<object> finalValue = new List<object>();
-        finalValue.Add(end);
-        setFieldProp(fieldInfo, finalValue);
+        DataLoaded();
     }
 
     void UpdateTargetDirectory() {

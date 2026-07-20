@@ -15,7 +15,7 @@ namespace Theoriz.OCF.Tests
     {
         public bool loadWithNameCalled;
 
-        public void LoadWithName(string fileName, float duration, string tweenStyle)
+        public void LoadWithName(string fileName)
         {
             loadWithNameCalled = true;
         }
@@ -30,7 +30,7 @@ namespace Theoriz.OCF.Tests
     public class HidingMirror : Controllable
     {
         [OSCMethod]
-        public new void LoadWithName(string fileName, float duration, string tweenStyle)
+        public new void LoadWithName(string fileName)
         {
         }
     }
@@ -41,6 +41,18 @@ namespace Theoriz.OCF.Tests
         [OSCMethod]
         public void LoadWithName(int slot)
         {
+        }
+    }
+
+    /// <summary>Mirror that counts DataLoaded calls. Since tweening was removed, loadData no longer
+    /// defers DataLoaded through a coroutine; it must invoke it exactly once, synchronously.</summary>
+    public class DataLoadedCountingMirror : Controllable
+    {
+        public int dataLoadedCount;
+
+        public override void DataLoaded()
+        {
+            dataLoadedCount++;
         }
     }
 
@@ -130,6 +142,25 @@ namespace Theoriz.OCF.Tests
             yield return null;
 
             AssertBoundToBuiltIn(ctrl);
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        /// <summary>
+        /// loadData used to end with StartCoroutine(CallAfterDuration(DataLoaded, duration)); with the
+        /// tween path gone it calls DataLoaded() directly. A subclass override must still fire once.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator LoadData_InvokesDataLoaded_ExactlyOnce()
+        {
+            var (go, _, ctrl) = Build<DataLoadedCountingMirror>();
+            yield return null;
+
+            ctrl.loadData(new ControllableData());
+
+            Assert.AreEqual(1, ctrl.dataLoadedCount,
+                "loadData should invoke DataLoaded exactly once, synchronously.");
 
             Object.Destroy(go);
             yield return null;
