@@ -140,7 +140,7 @@ public class Controllable : MonoBehaviour
     [HideInInspector]
     public List<string> presetList;
 
-    private string tempFileName = "_temp.pst";
+    private string lastUsedPresetFileName = "_lastUsedPreset.txt";
 
     public virtual void Awake()
     {
@@ -379,10 +379,10 @@ public class Controllable : MonoBehaviour
 
     public void LoadLatestUsedPreset()
     {
-        //Check if the temp preset containing the last used preset exists
-        if (!File.Exists(targetDirectory + tempFileName)) return;
+        //Check if the file recording the last used preset exists
+        if (!File.Exists(targetDirectory + lastUsedPresetFileName)) return;
 
-        var file = new StreamReader(targetDirectory + tempFileName);
+        var file = new StreamReader(targetDirectory + lastUsedPresetFileName);
 
         var lastPresetRead =  file.ReadLine();
         file.Close();
@@ -407,11 +407,14 @@ public class Controllable : MonoBehaviour
         UpdateTargetDirectory();
 
         Directory.CreateDirectory(targetDirectory);
+
+        MigrateLegacyLastUsedPreset();
+
         foreach (var t in Directory.GetFiles(targetDirectory))
         {
             var onlyFileName = Path.GetFileName(t);
-            //Don't put temp file in list
-            if (onlyFileName == tempFileName || onlyFileName.Split('.').Last() != "pst") continue;
+            //Only .pst files are presets; the last-used-preset marker (.txt) is excluded by extension
+            if (onlyFileName.Split('.').Last() != "pst") continue;
             presetList.Add(onlyFileName);
         }
 
@@ -490,7 +493,7 @@ public class Controllable : MonoBehaviour
             Debug.Log("Saved in " + targetDirectory + fileName);
 
         currentPreset = fileName;
-        WriteCurrentPresetToTempFile();
+        WriteLastUsedPreset();
 
         ReadFileList();
     }
@@ -538,7 +541,7 @@ public class Controllable : MonoBehaviour
             return;
         }
         currentPreset = fileName;
-        WriteCurrentPresetToTempFile();
+        WriteLastUsedPreset();
     }
 
     //Override it if you want to do things after a load
@@ -553,7 +556,7 @@ public class Controllable : MonoBehaviour
 
         if (usePresets)
         {
-            WriteCurrentPresetToTempFile();
+            WriteLastUsedPreset();
         }
 
         if (debug)
@@ -935,12 +938,26 @@ public class Controllable : MonoBehaviour
 #endif
     }
 
-    void WriteCurrentPresetToTempFile()
+    void WriteLastUsedPreset()
     {
         if (!string.IsNullOrEmpty(currentPreset))
         {
             //write last loaded preset
-            File.WriteAllText(targetDirectory + tempFileName, currentPreset);
+            File.WriteAllText(targetDirectory + lastUsedPresetFileName, currentPreset);
         }
+    }
+
+    // Earlier versions stored the last-used preset name in "_temp.pst" — neither temporary nor a
+    // preset. Adopt its content under the new name and remove the legacy file.
+    void MigrateLegacyLastUsedPreset()
+    {
+        var legacyPath = targetDirectory + "_temp.pst";
+        if (!File.Exists(legacyPath)) return;
+
+        var newPath = targetDirectory + lastUsedPresetFileName;
+        if (File.Exists(newPath))
+            File.Delete(legacyPath);      // new file wins; drop the stale legacy one
+        else
+            File.Move(legacyPath, newPath); // preserves the last-used preset name
     }
 }

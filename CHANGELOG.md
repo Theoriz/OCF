@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Vector4 support: `TypeConverter.StringToVector4`, and `Vector4` handling in `setFieldProp`, `setMethodProp` and `getData`.
 
+### Changed
+
+- The last-used-preset marker file was renamed from `_temp.pst` to `_lastUsedPreset.txt`; legacy files are migrated automatically on load.
+
 ### Removed
 
 - Preset tweening: removed the `TweenCurves` class and the `duration` / `tweenStyle` parameters from `LoadWithName` and `loadData`; presets now apply instantly. OSC callers degrade gracefully (extra `LoadWithName` args are ignored, not an error); saved `.pst` files are unaffected.

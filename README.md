@@ -152,6 +152,8 @@ To load a specific file, use the `LoadWithName` method:
 
 To keep a member out of saved presets, set `includeInPresets = false` on its `[OSCProperty]`.
 
+The last-used preset is remembered across runs: on enable, `Controllable` reloads whichever preset was active when it was last disabled. This selection is stored in a plain-text file, `_lastUsedPreset.txt`, sitting alongside the `.pst` presets in the preset folder — it holds just the preset name and is not itself a preset.
+
 ## Exposing a list
 
 To pick a value from a list of strings, hand-write a mirror with a `List<string>` field and point a string member at it with `targetList`:
