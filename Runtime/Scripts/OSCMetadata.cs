@@ -17,6 +17,7 @@ public class OSCProperty : OSCMetadata
 [AttributeUsage(AttributeTargets.Method)]
 public class OSCMethod : OSCMetadata
 {
+    public bool showInUI = true;
 }
 
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]

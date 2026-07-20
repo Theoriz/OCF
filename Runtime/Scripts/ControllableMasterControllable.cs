@@ -41,7 +41,7 @@ public class ControllableMasterControllable : Controllable {
         ControllableMaster.SaveAsAllPresets();
     }
 
-    [OSCMethod]
+    [OSCMethod(showInUI = false)]
     public void LoadAll()
     {
         ControllableMaster.LoadAllPresets();

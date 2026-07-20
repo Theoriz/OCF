@@ -498,7 +498,7 @@ public class Controllable : MonoBehaviour
         ReadFileList();
     }
 
-    [OSCMethod]
+    [OSCMethod(showInUI = false)]
     public void Load()
     {
         LoadWithName(currentPreset);
@@ -702,6 +702,10 @@ public class Controllable : MonoBehaviour
             }
         }
         if (uiValueChanged != null) uiValueChanged(info.Name);
+
+        // Selecting a preset (via the dropdown or by setting currentPreset over OSC) loads it immediately.
+        if (info.Name == "currentPreset" && usePresets && !string.IsNullOrEmpty(currentPreset))
+            Load();
     }
 
     public void setMethodProp(ClassMethodInfo info, List<object> values)

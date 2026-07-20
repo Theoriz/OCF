@@ -9,9 +9,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Vector4 support: `TypeConverter.StringToVector4`, and `Vector4` handling in `setFieldProp`, `setMethodProp` and `getData`.
+- `[OSCMethod(showInUI = false)]`: keeps a method OSC-callable but suppresses its generated UI button.
 
 ### Changed
 
+- Setting `currentPreset` (dropdown or OSC) now loads that preset immediately. `Load` and `LoadAll` are marked `showInUI = false` — still callable over OSC, but no longer have a button.
 - The last-used-preset marker file was renamed from `_temp.pst` to `_lastUsedPreset.txt`; legacy files are migrated automatically on load.
 
 ### Removed
