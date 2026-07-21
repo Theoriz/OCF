@@ -4,7 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [1.3.1] - 2026-07-21
+## [1.4.0] - 2026-07-21
+
+### Added
+
+- `PollTargetScript`, the `protected virtual` hook `Update` polls through, and `RaiseScriptValueChanged` for overrides to raise.
+- Generated mirrors override `PollTargetScript` with typed comparisons, so polling no longer allocates. Regenerate existing ones (**Update Controllable**) to pick it up.
+
+### Changed
+
+- Values OCF writes itself (UI, OSC, preset) are no longer reported as script-side changes on the next poll.
+
+### Fixed
+
+- `setFieldProp` now raises `controllableValueChanged`, so a value set over OSC or by a preset refreshes the UI instead of relying on the poll to notice it.
+
+
 
 ### Fixed
 

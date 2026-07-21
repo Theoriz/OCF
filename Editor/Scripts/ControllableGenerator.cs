@@ -116,6 +116,7 @@ public class {newName} : Controllable
         // Separate buckets to ensure methods come last
         string variableDeclarations = "";
         string methodDeclarations = "";
+        string pollComparisons = "";
 
         BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
@@ -145,6 +146,7 @@ public class {newName} : Controllable
                 }
                 string attributes = GetAttributes(field, oscAttributeType, oscExposedInstance);
                 variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n\r\n";
+                pollComparisons += BuildPollComparison(field.Name, field.FieldType);
             }
             else if (member is PropertyInfo prop)
             {
@@ -158,6 +160,7 @@ public class {newName} : Controllable
                 }
                 string attributes = GetAttributes(prop, oscAttributeType, oscExposedInstance);
                 variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n\r\n";
+                pollComparisons += BuildPollComparison(prop.Name, prop.PropertyType);
             }
             else if (member is MethodInfo method)
             {
@@ -173,12 +176,76 @@ public class {newName} : Controllable
             }
         }
 
-        string result = variableDeclarations + methodDeclarations;
+        string result = variableDeclarations + methodDeclarations + BuildPollMethod(type, pollComparisons);
 
         if (string.IsNullOrWhiteSpace(result))
             result = "    // No public OSCExposed members found.\r\n";
 
         return result;
+    }
+
+    //Controllable's own poll reads every exposed member through reflection, which returns object and
+    //so boxes every value type once per frame. This override compares the mirror against the target
+    //directly, allocating nothing.
+    private static string BuildPollMethod(Type type, string comparisons)
+    {
+        if (string.IsNullOrWhiteSpace(comparisons))
+            return "";
+
+        string typeName = ToFriendlyTypeName(type);
+
+        return "    //Replaces Controllable's reflection-based poll, which boxes every exposed value every frame.\r\n"
+             + "    protected override void PollTargetScript()\r\n"
+             + "    {\r\n"
+             + $"        var target = TargetScript as {typeName};\r\n"
+             + "        if (target == null) return;\r\n"
+             + "\r\n"
+             + comparisons
+             + "    }\r\n";
+    }
+
+    //The mirror field is assigned before the event is raised so the change is reported once even if
+    //nothing else writes the mirror back.
+    private static string BuildPollComparison(string name, Type memberType)
+    {
+        return $"        if ({BuildInequality(name, memberType)}) {{ {name} = target.{name}; RaiseScriptValueChanged(\"{name}\"); }}\r\n";
+    }
+
+    //Primitives, strings and enums compare with != for free. Unity's vector and color types are
+    //compared component by component instead, for two reasons: their operator!= is an *approximate*
+    //compare that would stop reporting small changes, and EqualityComparer<T>.Default boxes for the
+    //ones that do not implement IEquatable<T> (which varies by Unity version). Comparing components
+    //with Equals is exact - the same answer the reflection poll's object.Equals gives, including for
+    //NaN - and allocates nothing on any version.
+    private static string BuildInequality(string name, Type memberType)
+    {
+        if (memberType.IsEnum
+            || memberType == typeof(string)
+            || memberType.IsPrimitive)
+        {
+            return $"{name} != target.{name}";
+        }
+
+        string[] components = GetComparableComponents(memberType);
+        if (components != null)
+        {
+            string equal = string.Join(" && ", components.Select(c => $"{name}.{c}.Equals(target.{name}.{c})"));
+            return $"!({equal})";
+        }
+
+        //Anything else: correct, but boxes once per frame if the type has no IEquatable<T>.
+        return $"!System.Collections.Generic.EqualityComparer<{ToFriendlyTypeName(memberType)}>.Default.Equals({name}, target.{name})";
+    }
+
+    //The fields to compare for the vector and color types OCF supports, or null for anything else.
+    private static string[] GetComparableComponents(Type t)
+    {
+        if (t == typeof(Vector2) || t == typeof(Vector2Int)) return new[] { "x", "y" };
+        if (t == typeof(Vector3) || t == typeof(Vector3Int)) return new[] { "x", "y", "z" };
+        if (t == typeof(Vector4)) return new[] { "x", "y", "z", "w" };
+        if (t == typeof(Color)) return new[] { "r", "g", "b", "a" };
+
+        return null;
     }
 
     private static string GetAttributes(MemberInfo member, Type oscAttributeType, Attribute oscInstance)

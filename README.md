@@ -71,6 +71,15 @@ public class MyScriptControllable : Controllable
     {
         (TargetScript as MyScript).Randomize();
     }
+
+    protected override void PollTargetScript()
+    {
+        var target = TargetScript as MyScript;
+        if (target == null) return;
+
+        if (speed != target.speed) { speed = target.speed; RaiseScriptValueChanged("speed"); }
+        // ...one line per exposed member; vectors and colors compare component by component
+    }
 }
 ```
 
@@ -83,7 +92,12 @@ The mirror re-declares each exposed member with `[OSCProperty]` (fields) or `[OS
 
 Values flow both ways: incoming OSC and UI edits are written through to your script, and `Controllable.Update` polls your script for changes made in code.
 
-You can also write a mirror by hand instead of generating it, which is what the extra `[OSCProperty]` options below need.
+That poll runs every frame. `PollTargetScript` is what does it, and the generated override above compares the mirror against your script directly — no reflection and no allocation. The base implementation it replaces reads every exposed member through reflection, which boxes every `float`, `int`, `bool`, `Vector` and `Color` once per frame whether or not it changed.
+
+> [!TIP]
+> Mirrors generated before this existed keep working, but keep paying that cost. Regenerate them — right-click the component and choose **Update Controllable** — to pick up the typed poll.
+
+You can also write a mirror by hand instead of generating it, which is what the extra `[OSCProperty]` options below need. A hand-written mirror runs the reflection poll unless you override `PollTargetScript` yourself, following the shape above.
 
 ### `[OSCProperty]` options
 

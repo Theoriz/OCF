@@ -124,6 +124,9 @@ public class Controllable : MonoBehaviour
     // Snapshot of TargetFields.Values in insertion order, aligned index-for-index with PreviousFieldsValues; iterated in Update to detect target-script changes.
     private ClassAttributInfo[] _targetFieldsArray;
 
+    // Member name to its index in that array, so a write can refresh the value the poll compares against.
+    private Dictionary<string, int> _targetFieldIndices;
+
     public delegate void UIValueChangedEvent(string name);
 
     public event UIValueChangedEvent uiValueChanged;
@@ -240,6 +243,10 @@ public class Controllable : MonoBehaviour
 
         _targetFieldsArray = TargetFields.Values.ToArray();
 
+        _targetFieldIndices = new Dictionary<string, int>(_targetFieldsArray.Length);
+        for (int i = 0; i < _targetFieldsArray.Length; i++)
+            _targetFieldIndices[_targetFieldsArray[i].Name] = i;
+
         //METHODS
         Methods = new Dictionary<string, ClassMethodInfo>();
 
@@ -336,6 +343,19 @@ public class Controllable : MonoBehaviour
             return;
         }
         TargetFields[name].SetValue(TargetScript, Fields[name].GetValue(this));
+
+        //The UI just wrote this value, so record it as the polled baseline too. Without this the
+        //next poll reads a value it has not seen before and reports it as a script-side change.
+        MarkPolledValueCurrent(name);
+    }
+
+    //Refreshes what PollTargetScript compares against, for a member OCF itself has just written.
+    private void MarkPolledValueCurrent(string name)
+    {
+        if (_targetFieldIndices == null || !_targetFieldIndices.TryGetValue(name, out int index))
+            return;
+
+        PreviousFieldsValues[index] = _targetFieldsArray[index].GetValue(TargetScript);
     }
 
     public virtual void OnEnable()
@@ -359,6 +379,22 @@ public class Controllable : MonoBehaviour
 
 	public virtual void Update() //Warn UI if attribut changes
     {
+        PollTargetScript();
+    }
+
+    /// <summary>
+    /// Detects changes made to the target script and raises <see cref="scriptValueChanged"/> for
+    /// each one.
+    /// </summary>
+    /// <remarks>
+    /// This default reads every exposed member through reflection, which returns <c>object</c> and
+    /// so boxes every float, int, bool, Vector and Color once per frame whether or not it changed.
+    /// Generated mirrors override it with direct typed comparisons that allocate nothing; this
+    /// implementation is what hand-written mirrors, and generated ones not yet regenerated, still
+    /// run on.
+    /// </remarks>
+    protected virtual void PollTargetScript()
+    {
         if (_targetFieldsArray == null)
             return;
 
@@ -368,13 +404,21 @@ public class Controllable : MonoBehaviour
 
             if (!object.Equals(value, PreviousFieldsValues[i]))
             {
-                //Debug.Log("Target script value : " + value.ToString() + " previous : " + PreviousFieldsValues[i].ToString());
-                if (scriptValueChanged != null)
-                    scriptValueChanged(_targetFieldsArray[i].Name);
+                RaiseScriptValueChanged(_targetFieldsArray[i].Name);
 
                 PreviousFieldsValues[i] = value;
             }
         }
+    }
+
+    /// <summary>
+    /// Raises <see cref="scriptValueChanged"/>. An event can only be raised from the type that
+    /// declares it, so an overriding <see cref="PollTargetScript"/> needs this.
+    /// </summary>
+    protected void RaiseScriptValueChanged(string name)
+    {
+        if (scriptValueChanged != null)
+            scriptValueChanged(name);
     }
 
     public void LoadLatestUsedPreset()
@@ -702,6 +746,11 @@ public class Controllable : MonoBehaviour
             }
         }
         if (uiValueChanged != null) uiValueChanged(info.Name);
+
+        //Write-through happened above; now tell the UI the value moved. This has to be explicit:
+        //OSC and preset writes leave the mirror and the target agreeing, so no poll - typed or
+        //reflection-based - can detect them, and nothing else would refresh the widgets.
+        RaiseEventValueChanged(info.Name);
 
         // Selecting a preset (via the dropdown or by setting currentPreset over OSC) loads it immediately.
         if (info.Name == "currentPreset" && usePresets && !string.IsNullOrEmpty(currentPreset))
