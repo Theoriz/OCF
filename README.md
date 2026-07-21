@@ -4,6 +4,15 @@ OSC Control Framework for Unity.
 
 OCF exposes your scripts' fields, properties and methods to [OSC](https://en.wikipedia.org/wiki/Open_Sound_Control) control, by reflecting over them at runtime. It is the control layer used by [GenUI](https://github.com/Theoriz/GenUI), which adds a generated user interface on top — but OCF works on its own if you only need OSC.
 
+## Requirements
+
+| Requirement | Notes |
+|---|---|
+| **Unity 2022.3** or later | |
+| **com.theoriz.unityosc** 1.3.0 or later | OCF's OSC transport. Earlier versions still work but declare Unity 2019.4. |
+
+The packages declare no UPM `dependencies`, so nothing installs UnityOSC for you and nothing warns you when it is too old — install it first.
+
 ## Installation
 
 Add the following line to your project's `Packages/manifest.json`:
