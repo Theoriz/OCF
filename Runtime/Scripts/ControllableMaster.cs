@@ -62,10 +62,51 @@ public class ControllableMaster : MonoBehaviour
     private RegisterService service;
     private bool zeroconfServiceCreated = false;
 
+    #region MonoBehaviour
+
 	private void Awake() {
 
         instance = this;
 	}
+
+	private void Start()
+    {
+        IPAddress = GetLocalIPAddress();
+
+        Connect();
+    }
+
+    private void Update()
+    {
+        if (!IsConnected && IncrementalConnect)
+        {
+            if (_connectAttempts < maxConnectAttempts)
+            {
+                _connectAttempts++;
+                OSCInputPort++; // setter calls Connect()
+                if (_connectAttempts >= maxConnectAttempts)
+                    Debug.LogWarning("[OCF] ControllableMaster could not open an OSC input port after "
+                        + maxConnectAttempts + " attempts (last tried " + OSCInputPort + "). Giving up.");
+            }
+        }
+        else if (IsConnected)
+        {
+            _connectAttempts = 0;
+        }
+    }
+
+    private void OnDisable() {
+
+        if (OSCMaster.HasReceiver(OSCReceiverName))
+        {
+            OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
+            OSCMaster.RemoveReceiver(OSCReceiverName);
+        }
+
+        CloseZeroconfService();
+    }
+
+    #endregion
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
@@ -224,46 +265,11 @@ public class ControllableMaster : MonoBehaviour
 
     #endregion
 
-	private void Start()
-    {
-        IPAddress = GetLocalIPAddress();
-
-        Connect();
-    }
-
-    private void Update()
-    {
-        if (!IsConnected && IncrementalConnect)
-        {
-            if (_connectAttempts < maxConnectAttempts)
-            {
-                _connectAttempts++;
-                OSCInputPort++; // setter calls Connect()
-                if (_connectAttempts >= maxConnectAttempts)
-                    Debug.LogWarning("[OCF] ControllableMaster could not open an OSC input port after "
-                        + maxConnectAttempts + " attempts (last tried " + OSCInputPort + "). Giving up.");
-            }
-        }
-        else if (IsConnected)
-        {
-            _connectAttempts = 0;
-        }
-    }
+    #region Connection and OSC
 
     public void RefreshIP()
     {
         IPAddress = GetLocalIPAddress();
-    }
-
-    private void OnDisable() {
-
-        if (OSCMaster.HasReceiver(OSCReceiverName))
-        {
-            OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
-            OSCMaster.RemoveReceiver(OSCReceiverName);
-        }
-
-        CloseZeroconfService();
     }
 
     public static string GetLocalIPAddress()
@@ -362,6 +368,10 @@ public class ControllableMaster : MonoBehaviour
          UpdateValue(target, property, m.Data);
     }
 
+    #endregion
+
+    #region Controllable registry
+
     public static void Register(Controllable candidate)
     {
         if (!RegisteredControllables.ContainsKey(candidate.id))
@@ -393,6 +403,10 @@ public class ControllableMaster : MonoBehaviour
         else
             Debug.LogWarning("[ControllableMaster] Target : \"" + target + "\" is unknown !");
     }
+
+    #endregion
+
+    #region Presets for every controllable
 
     public static void LoadEveryPresets()
     {
@@ -434,6 +448,10 @@ public class ControllableMaster : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Zeroconf
+
     private void CreateZeroconfService() {
 
         //_osc._udp.
@@ -456,4 +474,6 @@ public class ControllableMaster : MonoBehaviour
         service.Dispose();
         zeroconfServiceCreated = false;
     }
+
+    #endregion
 }

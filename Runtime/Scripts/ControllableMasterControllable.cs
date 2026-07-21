@@ -18,6 +18,8 @@ public class ControllableMasterControllable : Controllable {
     [OSCProperty(readOnly = true)] public bool IsConnected;
 
 
+    #region Mirror
+
     [OSCMethod]
     public void RefreshIP()
     {
@@ -36,6 +38,10 @@ public class ControllableMasterControllable : Controllable {
         if (IncrementalConnect != target.IncrementalConnect) { IncrementalConnect = target.IncrementalConnect; RaiseScriptValueChanged("IncrementalConnect"); }
         if (IsConnected != target.IsConnected) { IsConnected = target.IsConnected; RaiseScriptValueChanged("IsConnected"); }
     }
+
+    #endregion
+
+    #region Global actions
 
     //The global preset methods below, by name. These exist only on this class, so matching a button
     //by name alone is not enough to identify one — a target script may legitimately expose its own
@@ -72,4 +78,6 @@ public class ControllableMasterControllable : Controllable {
     {
         ControllableMaster.LoadAllPresets();
     }
+
+    #endregion
 }

@@ -5,6 +5,8 @@ using System;
 
 public static class TypeConverter {
 
+    #region Scalars
+
     public static int getIndexInEnum(List<string> enumValueList, string selectedElement)
     {
         var activeElementIndex = -1;
@@ -88,6 +90,10 @@ public static class TypeConverter {
 
         return -1;
     }
+
+    #endregion
+
+    #region Strings to Unity types
 
     public static Color StringToColor(string sColor)
     {
@@ -244,4 +250,6 @@ public static class TypeConverter {
 
         return result;
     }
+
+    #endregion
 }

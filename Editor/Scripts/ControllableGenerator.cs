@@ -8,6 +8,8 @@ using UnityEngine;
 public static class ControllableGenerator
 {
     [MenuItem("Assets/Controllable/Generate Controllable Script", true, 10000)]
+    #region Menu
+
     private static bool ValidateMenu()
     {
         TextAsset selected = Selection.activeObject as TextAsset;
@@ -35,6 +37,10 @@ public static class ControllableGenerator
 
 
     // -------------------------- Helpers --------------------------
+
+    #endregion
+
+    #region Generation
 
     public static void GenerateControllableForScript(string originalName, string originalPath, bool forceReplace = false)
     {
@@ -187,6 +193,10 @@ public class {newName} : Controllable
     //Controllable's own poll reads every exposed member through reflection, which returns object and
     //so boxes every value type once per frame. This override compares the mirror against the target
     //directly, allocating nothing.
+    #endregion
+
+    #region Emitted PollTargetScript
+
     private static string BuildPollMethod(Type type, string comparisons)
     {
         if (string.IsNullOrWhiteSpace(comparisons))
@@ -247,6 +257,10 @@ public class {newName} : Controllable
 
         return null;
     }
+
+    #endregion
+
+    #region Source text helpers
 
     private static string GetAttributes(MemberInfo member, Type oscAttributeType, Attribute oscInstance)
     {
@@ -325,4 +339,6 @@ public class {newName} : Controllable
 
         return (t.FullName ?? t.Name).Replace('+', '.');
     }
+
+    #endregion
 }

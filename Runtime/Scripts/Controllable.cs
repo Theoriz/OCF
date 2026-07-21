@@ -145,6 +145,8 @@ public class Controllable : MonoBehaviour
 
     private string lastUsedPresetFileName = "_lastUsedPreset.txt";
 
+    #region MonoBehaviour
+
     public virtual void Awake()
     {
         debug = false;
@@ -321,6 +323,53 @@ public class Controllable : MonoBehaviour
         sourceScene = SceneManager.GetActiveScene().name;
     }
 
+    public virtual void OnEnable()
+    {
+		if (debug)
+			Debug.Log("Registering " + this.GetType().Name + " script as " + id);
+        ControllableMaster.Register(this);
+
+        if (usePresets)
+        {
+            presetList = new List<string>();
+            ReadFileList();
+
+            if (presetList.Count >= 1)
+            {
+                currentPreset = presetList[0];
+                LoadLatestUsedPreset();
+            }
+        }
+    }
+
+	public virtual void Update() //Warn UI if attribut changes
+    {
+        PollTargetScript();
+    }
+
+    public virtual void OnDisable()
+    {
+        if (debug)
+            Debug.Log("Saving temp file with : " + currentPreset);
+
+        if (usePresets)
+        {
+            WriteLastUsedPreset();
+        }
+
+        if (debug)
+            Debug.Log("Done saving");
+
+		if (debug)
+			Debug.Log("Unregistering " + this.GetType().Name + " script on " + this.gameObject.name);
+
+		ControllableMaster.UnRegister(this);
+    }
+
+    #endregion
+
+    #region Mirror synchronisation
+
     public virtual void OnScriptValueChanged(string name)
     {
         if (String.IsNullOrEmpty(name) || !TargetFields.ContainsKey(name))
@@ -356,30 +405,6 @@ public class Controllable : MonoBehaviour
             return;
 
         PreviousFieldsValues[index] = _targetFieldsArray[index].GetValue(TargetScript);
-    }
-
-    public virtual void OnEnable()
-    {
-		if (debug)
-			Debug.Log("Registering " + this.GetType().Name + " script as " + id);
-        ControllableMaster.Register(this);
-
-        if (usePresets)
-        {
-            presetList = new List<string>();
-            ReadFileList();
-
-            if (presetList.Count >= 1)
-            {
-                currentPreset = presetList[0];
-                LoadLatestUsedPreset();
-            }
-        }
-    }
-
-	public virtual void Update() //Warn UI if attribut changes
-    {
-        PollTargetScript();
     }
 
     /// <summary>
@@ -420,6 +445,37 @@ public class Controllable : MonoBehaviour
         if (scriptValueChanged != null)
             scriptValueChanged(name);
     }
+
+    #endregion
+
+    #region Reserved names
+
+    //Controllable's own [OSCMethod] members: the four preset methods plus LoadWithName. These are
+    //always bound to Controllable's implementation, never to a target script's same-named method.
+    static readonly HashSet<string> _builtInOSCMethodNames = new HashSet<string>(
+        typeof(Controllable).GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(m => Attribute.GetCustomAttribute(m, typeof(OSCMethod)) != null)
+            .Select(m => m.Name));
+
+    //Every public member Controllable exposes, including those inherited from MonoBehaviour (name,
+    //tag, transform, enabled...). A mirror declaring any of these names shadows the real member.
+    static readonly HashSet<string> _reservedMemberNames = new HashSet<string>(
+        typeof(Controllable).GetMembers(BindingFlags.Instance | BindingFlags.Public)
+            .Select(m => m.Name));
+
+    /// <summary>
+    /// True if <paramref name="name"/> is the name of a member Controllable already exposes.
+    /// An [OSCExposed] member must not reuse one: the generated mirror would declare a member of the
+    /// same name, shadowing the real one and breaking it silently.
+    /// </summary>
+    public static bool IsReservedMemberName(string name)
+    {
+        return _reservedMemberNames.Contains(name);
+    }
+
+    #endregion
+
+    #region Presets
 
     public void LoadLatestUsedPreset()
     {
@@ -473,29 +529,6 @@ public class Controllable : MonoBehaviour
     //The preset methods below, by name. Callers identify preset buttons/methods by matching against
     //this rather than their displayed label, which is a derived string (see GenUI's ParseNameString).
     public static readonly string[] PresetMethodNames = { "Save", "SaveAs", "Load", "Show" };
-
-    //Controllable's own [OSCMethod] members: the four preset methods plus LoadWithName. These are
-    //always bound to Controllable's implementation, never to a target script's same-named method.
-    static readonly HashSet<string> _builtInOSCMethodNames = new HashSet<string>(
-        typeof(Controllable).GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .Where(m => Attribute.GetCustomAttribute(m, typeof(OSCMethod)) != null)
-            .Select(m => m.Name));
-
-    //Every public member Controllable exposes, including those inherited from MonoBehaviour (name,
-    //tag, transform, enabled...). A mirror declaring any of these names shadows the real member.
-    static readonly HashSet<string> _reservedMemberNames = new HashSet<string>(
-        typeof(Controllable).GetMembers(BindingFlags.Instance | BindingFlags.Public)
-            .Select(m => m.Name));
-
-    /// <summary>
-    /// True if <paramref name="name"/> is the name of a member Controllable already exposes.
-    /// An [OSCExposed] member must not reuse one: the generated mirror would declare a member of the
-    /// same name, shadowing the real one and breaking it silently.
-    /// </summary>
-    public static bool IsReservedMemberName(string name)
-    {
-        return _reservedMemberNames.Contains(name);
-    }
 
     [OSCMethod]
     public void Save()
@@ -594,24 +627,9 @@ public class Controllable : MonoBehaviour
     //Override it if you want to do things before a preset save
     public virtual void CallMeBeforeSave() { }
 
-    public virtual void OnDisable()
-    {
-        if (debug)
-            Debug.Log("Saving temp file with : " + currentPreset);
+    #endregion
 
-        if (usePresets)
-        {
-            WriteLastUsedPreset();
-        }
-
-        if (debug)
-            Debug.Log("Done saving");
-
-		if (debug)
-			Debug.Log("Unregistering " + this.GetType().Name + " script on " + this.gameObject.name);
-
-		ControllableMaster.UnRegister(this);
-    }
+    #region Members and OSC
 
     public FieldInfo getFieldInfoByName(string requestedName)
     {
@@ -892,6 +910,10 @@ public class Controllable : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Preset data and files
+
     public object getData()
     {
         ControllableData data = new ControllableData();
@@ -1011,4 +1033,6 @@ public class Controllable : MonoBehaviour
         else
             File.Move(legacyPath, newPath); // preserves the last-used preset name
     }
+
+    #endregion
 }

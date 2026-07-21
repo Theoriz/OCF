@@ -5,6 +5,8 @@ using UnityEngine;
 public class AddControllableComponentMenu : Editor
 {
     [MenuItem("CONTEXT/Component/Add Controllable", true, 10000)]
+    #region Menu
+
     private static bool ValidateMenu(MenuCommand command)
     {
         Component sourceComponent = command.context as Component;
@@ -72,6 +74,10 @@ public class AddControllableComponentMenu : Editor
     //queued before it. Deferred with delayCall so the work happens once the Editor is idle rather
     //than mid-reload.
     [UnityEditor.Callbacks.DidReloadScripts]
+    #endregion
+
+    #region Resuming after the domain reload
+
     private static void ResumePendingAdds()
     {
         //Takes and clears in one step - see PendingControllableAdds.TakeAll.
@@ -110,6 +116,10 @@ public class AddControllableComponentMenu : Editor
     //Shared by the menu click and the post-reload resume. Failures are reported with a dialog when the
     //user is waiting on one, and with a warning otherwise - a modal appearing by itself seconds after
     //a compile would be worse than the problem this fixes.
+    #endregion
+
+    #region Adding the component
+
     private static void TryAddFor(Component sourceComponent, bool interactive)
     {
         GameObject go = sourceComponent.gameObject;
@@ -176,4 +186,6 @@ public class AddControllableComponentMenu : Editor
         addedControllable.BarColor = UnityEngine.Random.ColorHSV(0, 1, .6f, 1, 1, 1, 1, 1);
         addedControllable.id = sourceType.Name;
     }
+
+    #endregion
 }
