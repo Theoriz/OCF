@@ -973,21 +973,18 @@ public class Controllable : MonoBehaviour
 
     void UpdateTargetDirectory() {
 
-#if UNITY_STANDALONE || UNITY_EDITOR
-        //TODO: Should be cleaned up to find the correct ControllableMaster instance instead of using FindObjectOfType
-        ControllableMaster controllableMaster = FindAnyObjectByType<ControllableMaster>();
+        //Where this controllable's presets sit under the shared root: one folder per scene (or per
+        //'folder' override), one per controllable id.
+        string subPath = (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
 
-        if (controllableMaster && controllableMaster.useDocumentsDirectory)
-        {
-            targetDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/" + Application.productName + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
-        }
-        else
-        {
-            targetDirectory = Application.dataPath + "/../Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
-        }
+#if UNITY_STANDALONE || UNITY_EDITOR
+        //The root is resolved once by ControllableMaster, which also owns the command-line and
+        //inspector overrides. It always ends in '/'.
+        targetDirectory = ControllableMaster.PresetRootDirectory + subPath;
 #endif
 #if UNITY_ANDROID && !UNITY_EDITOR
-        targetDirectory = Application.persistentDataPath + "/Presets/" + (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+        //persistentDataPath is the only writable location on Android, so the overrides do not apply.
+        targetDirectory = Application.persistentDataPath + "/Presets/" + subPath;
 #endif
     }
 

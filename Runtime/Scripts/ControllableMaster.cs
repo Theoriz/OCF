@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityOSC;
 using System.Net;
@@ -17,6 +18,9 @@ public class ControllableMaster : MonoBehaviour
     public int maxConnectAttempts = 100;
     private int _connectAttempts;
     public bool useDocumentsDirectory = false;
+
+    [Tooltip("Absolute path to keep presets in. Overrides Use Documents Directory. Relative paths are rejected. The " + PresetsPathArgument + " command-line argument wins over this.")]
+    public string customPresetDirectory = "";
     public bool ShowDebug;
     public string OSCReceiverName;
     public string RootOSCAddress;
@@ -58,7 +62,129 @@ public class ControllableMaster : MonoBehaviour
     {
         RegisteredControllables.Clear();
         instance = null;
+        _presetRootDirectory = null;
     }
+
+    #region Preset root
+
+    public const string PresetsPathArgument = "-presetsPath";
+
+    private static string _presetRootDirectory;
+
+    /// <summary>
+    /// Folder every Controllable keeps its presets under, as "…/", resolved once per run.
+    /// </summary>
+    /// <remarks>
+    /// Resolved lazily rather than in Awake: controllables read their presets from their own
+    /// OnEnable, which is not guaranteed to run after this component's Awake, so <see cref="instance"/>
+    /// may not be set yet when the first one asks.
+    /// </remarks>
+    public static string PresetRootDirectory
+    {
+        get
+        {
+            if (_presetRootDirectory != null)
+                return _presetRootDirectory;
+
+            ControllableMaster master = instance != null ? instance : FindAnyObjectByType<ControllableMaster>();
+            string inspectorPath = master != null ? master.customPresetDirectory : "";
+            bool useDocuments = master != null && master.useDocumentsDirectory;
+
+            string root = ResolvePresetRoot(Environment.GetCommandLineArgs(), inspectorPath, useDocuments);
+
+            //Checked here, once, so the unguarded Directory.CreateDirectory calls in Controllable's
+            //ReadFileList and Save can never throw out of OnEnable and leave it half registered.
+            string error;
+            if (!TryPrepareDirectory(root, out error))
+            {
+                string fallback = ResolvePresetRoot(null, "", useDocuments);
+                Debug.LogError("[OCF] Cannot use presets folder '" + root + "' (" + error + "). Falling back to '" + fallback + "'.");
+                root = fallback;
+            }
+
+            _presetRootDirectory = root;
+            return _presetRootDirectory;
+        }
+    }
+
+    /// <summary>
+    /// Picks the presets root: the <see cref="PresetsPathArgument"/> command-line argument first, then
+    /// the inspector field, then the built-in location. Pure - no file system access.
+    /// </summary>
+    public static string ResolvePresetRoot(string[] commandLineArgs, string inspectorPath, bool useDocuments)
+    {
+        string custom = ReadPresetsPathArgument(commandLineArgs);
+        string source = PresetsPathArgument;
+
+        if (string.IsNullOrEmpty(custom))
+        {
+            custom = inspectorPath;
+            source = "customPresetDirectory";
+        }
+
+        if (!string.IsNullOrEmpty(custom))
+        {
+            custom = custom.Trim();
+
+            //A relative path would resolve against the working directory, which is not the executable
+            //folder when launched from a shortcut - so it is rejected rather than quietly guessed at.
+            if (Path.IsPathRooted(custom))
+                return WithTrailingSlash(custom);
+
+            Debug.LogError("[OCF] Presets path '" + custom + "' from " + source
+                + " is not an absolute path and was ignored. Using the default presets folder.");
+        }
+
+        return WithTrailingSlash(DefaultPresetRoot(useDocuments));
+    }
+
+    private static string DefaultPresetRoot(bool useDocuments)
+    {
+        if (useDocuments)
+            return Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/" + Application.productName + "/Presets";
+
+        return Application.dataPath + "/../Presets";
+    }
+
+    //The argument value arrives already unquoted, so a path containing spaces is one element.
+    //A trailing PresetsPathArgument with nothing after it is ignored.
+    private static string ReadPresetsPathArgument(string[] commandLineArgs)
+    {
+        if (commandLineArgs == null)
+            return "";
+
+        for (int i = 0; i < commandLineArgs.Length - 1; i++)
+        {
+            if (string.Equals(commandLineArgs[i], PresetsPathArgument, StringComparison.OrdinalIgnoreCase))
+                return commandLineArgs[i + 1];
+        }
+
+        return "";
+    }
+
+    //Every consumer builds file paths as targetDirectory + fileName, so the trailing slash is part of
+    //the contract, not cosmetic.
+    private static string WithTrailingSlash(string path)
+    {
+        return path.Replace('\\', '/').TrimEnd('/') + "/";
+    }
+
+    private static bool TryPrepareDirectory(string path, out string error)
+    {
+        try
+        {
+            Directory.CreateDirectory(path);
+            error = null;
+            return true;
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+            return false;
+        }
+    }
+
+    #endregion
 
 	private void Start()
     {

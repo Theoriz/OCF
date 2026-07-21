@@ -173,6 +173,32 @@ To keep a member out of saved presets, set `includeInPresets = false` on its `[O
 
 The last-used preset is remembered across runs: on enable, `Controllable` reloads whichever preset was active when it was last disabled. This selection is stored in a plain-text file, `_lastUsedPreset.txt`, sitting alongside the `.pst` presets in the preset folder — it holds just the preset name and is not itself a preset.
 
+### Where presets are stored
+
+Each `Controllable` gets its own folder under a shared root:
+
+```
+<root>/<folder or scene name>/<controllable id>/myPreset.pst
+```
+
+`folder` is the `Controllable`'s own field; when it is empty the scene name is used instead.
+
+The root is picked once per run, first match winning:
+
+| # | Source | Set where |
+|---|---|---|
+| 1 | `-presetsPath "<absolute path>"` | Command line, e.g. `MyApp.exe -presetsPath "D:/Shows/Venue A/Presets"` |
+| 2 | `customPresetDirectory` | Inspector, on `ControllableMaster` |
+| 3 | `<application folder>/Presets/` | Default |
+| 3 | `<Documents>/<product name>/Presets/` | Default, when `useDocumentsDirectory` is ticked on `ControllableMaster` |
+
+**Paths must be absolute.** A relative path is ignored with an error in the console and the default is used, because it would otherwise resolve against the working directory, which is not the executable folder when the app is launched from a shortcut.
+
+If the chosen folder cannot be created or written to, OCF logs one error naming it and falls back to the default rather than failing to start.
+
+> [!NOTE]
+> On Android neither override applies: presets always live under `Application.persistentDataPath`, the only writable location.
+
 ## Exposing a list
 
 To pick a value from a list of strings, hand-write a mirror with a `List<string>` field and point a string member at it with `targetList`:

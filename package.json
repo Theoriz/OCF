@@ -1,9 +1,9 @@
 {
   "name": "com.theoriz.ocf",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "displayName": "OCF",
   "description": "Automatic OSC Control Framework for Unity",
-  "unity": "2019.4",
+  "unity": "2022.3",
   "author": {
     "name": "Theoriz",
     "url": "https://theoriz.com"
