@@ -220,10 +220,17 @@ public class {newName} : Controllable
         return attributes;
     }
 
+    //The result is written inside a C# string literal in the generated file, so anything the compiler
+    //would not read as plain text has to be escaped. Backslashes go first, or the escapes added below
+    //would be escaped a second time. A raw newline would split the literal and stop the file compiling.
     private static string EscapeString(string s)
     {
         if (s == null) return "";
-        return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        return s.Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n")
+                .Replace("\t", "\\t");
     }
 
     private static string ToFriendlyTypeName(Type t)

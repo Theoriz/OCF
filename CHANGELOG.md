@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1] - 2026-07-21
+
+### Fixed
+
+- `Generate Controllable Script` produced a mirror that would not compile when a `[Header]` or `[Tooltip]` contained a line break or a tab: the generated string literal was split across lines. Those characters are now escaped.
+
 ## [1.3.0] - 2026-07-20
 
 ### Added
