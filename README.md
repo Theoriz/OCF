@@ -47,7 +47,10 @@ public class MyScript : MonoBehaviour
 
 `readOnly` is the only option `[OSCExposed]` takes.
 
-Then generate the Controllable: right-click the script in the Project window and choose **Assets ▸ Controllable ▸ Generate Controllable Script**, or use the **Add Controllable** entry in the component's three-dots menu. Add the generated component to the same GameObject and point its `TargetScript` at your script.
+Then generate the Controllable, either way round:
+
+- **From the component**, three-dots menu ▸ **Add Controllable**. It offers to generate the script, and once compilation finishes it adds the component and wires it up for you — nothing else to do.
+- **From the Project window**, right-click the script ▸ **Assets ▸ Controllable ▸ Generate Controllable Script**. This only writes the script; add the generated component to the same GameObject and point its `TargetScript` at your script yourself.
 
 ### How it works: the two-object mirror
 

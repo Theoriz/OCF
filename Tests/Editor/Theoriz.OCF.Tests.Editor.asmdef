@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Theoriz.OCF.Runtime",
+        "Theoriz.OCF.Editor",
         "Theoriz.UnityOSC.Runtime"
     ],
     "includePlatforms": [
