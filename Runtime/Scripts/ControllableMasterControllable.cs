@@ -42,6 +42,19 @@ public class ControllableMasterControllable : Controllable {
     //SaveAll. Callers must also check the controllable is a ControllableMasterControllable.
     public static readonly string[] AllPresetMethodNames = { "SaveAll", "SaveAsAll", "LoadAll" };
 
+    //Global buttons that are not preset operations. They get their own row under the preset row,
+    //rather than being squeezed in beside Save All - three buttons do not fit across the panel.
+    public static readonly string[] GlobalActionMethodNames = { "OpenPresetsFolder" };
+
+    //On this class rather than Controllable so there is one global button instead of one per panel,
+    //and so the name stays out of Controllable's reserved members - which would otherwise forbid it
+    //as an [OSCExposed] name in every user script.
+    [OSCMethod]
+    public void OpenPresetsFolder()
+    {
+        (TargetScript as ControllableMaster).OpenPresetsFolder();
+    }
+
     [OSCMethod]
     public void SaveAll()
     {

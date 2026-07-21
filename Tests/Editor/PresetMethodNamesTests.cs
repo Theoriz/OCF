@@ -73,6 +73,52 @@ namespace Theoriz.OCF.Tests.Editor
                 new[] { "Save", "SaveAs", "Load", "Show" }, Controllable.PresetMethodNames);
         }
 
+        /// <summary>
+        /// Dropping a name from either global set does not fail anywhere else — the button simply
+        /// stops being reparented into its row at the top of the panel and reappears in the body,
+        /// which is easy to miss.
+        /// </summary>
+        [Test]
+        public void GlobalMethodNames_MatchTheDocumentedSets()
+        {
+            CollectionAssert.AreEquivalent(
+                new[] { "SaveAll", "SaveAsAll", "LoadAll" },
+                ControllableMasterControllable.AllPresetMethodNames);
+
+            CollectionAssert.AreEquivalent(
+                new[] { "OpenPresetsFolder" },
+                ControllableMasterControllable.GlobalActionMethodNames);
+        }
+
+        [Test]
+        public void GlobalActionMethodNames_AllExist_OnControllableMasterControllable()
+        {
+            var declared = ParameterlessOSCMethodNames(typeof(ControllableMasterControllable));
+
+            foreach (var name in ControllableMasterControllable.GlobalActionMethodNames)
+            {
+                Assert.Contains(name, declared,
+                    "ControllableMasterControllable.GlobalActionMethodNames lists '" + name +
+                    "', but no parameterless [OSCMethod] by that name exists on that class.");
+            }
+        }
+
+        /// <summary>
+        /// CleanGeneratedUI tests each set in turn and reparents on every match, so a name in both
+        /// would be moved twice and land in whichever row is checked last.
+        /// </summary>
+        [Test]
+        public void GlobalMethodNameSets_DoNotOverlap()
+        {
+            CollectionAssert.IsEmpty(
+                ControllableMasterControllable.AllPresetMethodNames
+                    .Intersect(ControllableMasterControllable.GlobalActionMethodNames));
+
+            CollectionAssert.IsEmpty(
+                Controllable.PresetMethodNames
+                    .Intersect(ControllableMasterControllable.GlobalActionMethodNames));
+        }
+
         [Test]
         public void IsReservedMemberName_CoversControllablesOwnMembers()
         {

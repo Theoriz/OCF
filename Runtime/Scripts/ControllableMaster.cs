@@ -12,18 +12,30 @@ public class ControllableMaster : MonoBehaviour
 {
     public static ControllableMaster instance;
 
-    public bool IsConnected;
+    //Field order below is the inspector layout; Unity serializes by name, so grouping them costs
+    //nothing. ControllableMasterEditor draws the Status pair disabled.
+    [Header("OSC")]
+    public string OSCReceiverName;
+    public string RootOSCAddress;
 
+    [Tooltip("If the input port is busy, increment it and retry.")]
     public bool IncrementalConnect = true;
     public int maxConnectAttempts = 100;
     private int _connectAttempts;
+
+    [Header("Status")]
+    public bool IsConnected;
+    public string IPAddress;
+
+    [Header("Presets")]
+    [Tooltip("Keep presets under Documents/<product name>/Presets instead of next to the application.")]
     public bool useDocumentsDirectory = false;
 
     [Tooltip("Absolute path to keep presets in. Overrides Use Documents Directory. Relative paths are rejected. The " + PresetsPathArgument + " command-line argument wins over this.")]
     public string customPresetDirectory = "";
+
+    [Header("Debug")]
     public bool ShowDebug;
-    public string OSCReceiverName;
-    public string RootOSCAddress;
 
     private int _OSCInputPort = 6001;
     public int OSCInputPort
@@ -38,8 +50,6 @@ public class ControllableMaster : MonoBehaviour
             Connect();
         }
     }
-
-    public string IPAddress;
 
     public static Dictionary<string, Controllable> RegisteredControllables = new Dictionary<string, Controllable>();
 
@@ -105,6 +115,34 @@ public class ControllableMaster : MonoBehaviour
             _presetRootDirectory = root;
             return _presetRootDirectory;
         }
+    }
+
+    /// <summary>
+    /// Drops the cached root so the next read resolves again. Needed in the Editor, where
+    /// <see cref="customPresetDirectory"/> can be edited without entering Play - the cache is
+    /// otherwise only cleared by <see cref="ResetStatics"/>.
+    /// </summary>
+    public static void InvalidatePresetRoot()
+    {
+        _presetRootDirectory = null;
+    }
+
+    /// <summary>Reveals the presets root in the system file browser.</summary>
+    public void OpenPresetsFolder()
+    {
+        OpenFolder(PresetRootDirectory);
+    }
+
+    /// <summary>
+    /// Opens a folder in the system file browser. Unlike explorer.exe, this works on Windows, macOS
+    /// and Linux.
+    /// </summary>
+    public static void OpenFolder(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        Application.OpenURL("file://" + path);
     }
 
     /// <summary>

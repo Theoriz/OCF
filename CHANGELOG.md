@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [1.5.1] - 2026-07-21
+
+### Added
+
+- **Open Presets Folder**, on the ControllableMaster panel, on its component in the Inspector, and at `/OCF/ControllableMaster/OpenPresetsFolder`.
+- `ControllableMasterControllable.GlobalActionMethodNames`, the global buttons that are not preset operations. GenUI 1.6.0 gives them their own row under Save All / Save As All.
+
+### Changed
+
+- The ControllableMaster inspector is grouped under OSC / Status / Presets / Debug headers, and `IsConnected` and `IPAddress` are drawn read-only there, matching how the panel already exposes them.
+
+### Fixed
+
+- `Show` opens the containing folder on macOS and Linux instead of only logging the path.
+
 ## [1.5.0] - 2026-07-21
 
 ### Added

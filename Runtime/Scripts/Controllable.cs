@@ -558,7 +558,8 @@ public class Controllable : MonoBehaviour
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         System.Diagnostics.Process.Start("explorer.exe", "/select," + itemPath);
 #else
-        Debug.Log("[OCF] Showing the preset folder is only supported on Windows. Path: " + itemPath);
+        //Only Explorer can select the file itself, so elsewhere open the folder holding it.
+        ControllableMaster.OpenFolder(targetDirectory);
 #endif
     }
 

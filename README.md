@@ -157,6 +157,15 @@ OSCMaster.Receivers["myReceiver"].messageReceived += (OSCMessage m) => Debug.Log
 
 `Controllable` can save and restore the state of all its `[OSCProperty]` members to a file. The generated panel exposes **Save**, **Save As** and **Show** buttons plus a preset dropdown, and the same methods are reachable over OSC.
 
+The ControllableMaster panel carries the global buttons instead: **Save All**, **Save As All** and **Open Presets Folder**. The last one reveals the presets root in your file browser, works whether or not any preset has been saved, and is also on the `ControllableMaster` component in the Inspector so you can reach the folder without entering Play mode.
+
+```
+/OCF/ControllableMaster/OpenPresetsFolder
+```
+
+> [!NOTE]
+> **Show** reveals a single preset file and does nothing while no preset is selected. **Open Presets Folder** always opens the folder.
+
 **Selecting a preset loads it.** Setting `currentPreset` — from the dropdown or over OSC (`/OCF/{id}/currentPreset "myPreset.pst"`) — loads that preset immediately. `Load` (reload the current preset) and, on the ControllableMaster, `LoadAll` remain callable over OSC but have no button, being marked `[OSCMethod(showInUI = false)]`. Any `[OSCMethod]` can set `showInUI = false` to stay OSC-callable without a UI button.
 
 To load a specific file, use the `LoadWithName` method:
