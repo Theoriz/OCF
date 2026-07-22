@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- `Load` and `LoadAll` have a UI button again, beside the other preset buttons.
 - Enums are set over OSC by member name, case-insensitively, or by underlying value.
 - Enums store the member's declared value rather than its position in the member list.
 - A value naming no member of the enum logs a warning listing the valid names.

@@ -49,7 +49,7 @@ public class ControllableMasterControllable : Controllable {
     public static readonly string[] AllPresetMethodNames = { "SaveAll", "SaveAsAll", "LoadAll" };
 
     //Global buttons that are not preset operations. They get their own row under the preset row,
-    //rather than being squeezed in beside Save All - three buttons do not fit across the panel.
+    //rather than being squeezed in beside Save All - their labels are too long to share a row.
     public static readonly string[] GlobalActionMethodNames = { "OpenPresetsFolder" };
 
     //On this class rather than Controllable so there is one global button instead of one per panel,
@@ -73,7 +73,7 @@ public class ControllableMasterControllable : Controllable {
         ControllableMaster.SaveAsAllPresets();
     }
 
-    [OSCMethod(showInUI = false)]
+    [OSCMethod]
     public void LoadAll()
     {
         ControllableMaster.LoadAllPresets();

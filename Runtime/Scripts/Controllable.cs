@@ -575,7 +575,7 @@ public class Controllable : MonoBehaviour
         ReadFileList();
     }
 
-    [OSCMethod(showInUI = false)]
+    [OSCMethod]
     public void Load()
     {
         LoadWithName(currentPreset);
