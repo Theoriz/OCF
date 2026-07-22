@@ -63,7 +63,7 @@ public class MyScript : MonoBehaviour
 Then generate the Controllable, either way round:
 
 - **From the component**, three-dots menu ▸ **Add Controllable**. It offers to generate the script, and once compilation finishes it adds the component and wires it up for you — nothing else to do.
-- **From the Project window**, right-click the script ▸ **Assets ▸ Controllable ▸ Generate Controllable Script**. This only writes the script; add the generated component to the same GameObject and point its `TargetScript` at your script yourself.
+- **From the Project window**, right-click the script ▸ **Assets ▸ Controllable ▸ Generate Controllable Script**. This only writes the script; add the generated component to the same GameObject and point its `controllableTargetScript` at your script yourself.
 
 ### How it works: the two-object mirror
 
@@ -85,12 +85,12 @@ public class MyScriptControllable : Controllable
     [OSCMethod]
     public void Randomize()
     {
-        (TargetScript as MyScript).Randomize();
+        (controllableTargetScript as MyScript).Randomize();
     }
 
     protected override void PollTargetScript()
     {
-        var target = TargetScript as MyScript;
+        var target = controllableTargetScript as MyScript;
         if (target == null) return;
 
         if (speed != target.speed) { speed = target.speed; RaiseScriptValueChanged("speed"); }
@@ -128,19 +128,14 @@ You can also write a mirror by hand instead of generating it, which is what the 
 
 ### Reserved names
 
-A generated Controllable **inherits from `Controllable`**, so an `[OSCExposed]` member that reuses one of `Controllable`'s member names will *shadow* the real one and break it:
+A generated Controllable **inherits from `Controllable`**, so an `[OSCExposed]` member that reuses one of `Controllable`'s member names will *shadow* the real one and break it. Since 2.0.0 every member `Controllable` declares carries a `controllable` prefix, which keeps the framework's own names out of your way. Fields and events spell it lower case and methods spell it `Controllable`, following the capital-letter rule every method name obeys:
 
-- `Save` — the preset Save button stops saving.
-- `id` — this is the name OCF registers and addresses your controllable by.
-- `name` — `Controllable` is a `MonoBehaviour`, so Unity's own members are shadowable too.
-
-The names most likely to collide:
-
-- **Preset methods:** `Save`, `SaveAs`, `Load`, `Show`, `LoadWithName`
-- **Controllable state:** `id`, `debug`, `folder`, `targetDirectory`, `sourceScene`, `usePanel`, `usePresets`, `hasPresets`, `closePanelAtStart`, `currentPreset`, `presetList`, `BarColor`, `TargetScript`
+- **Controllable state:** `controllableId`, `controllableDebug`, `controllableFolder`, `controllableTargetDirectory`, `controllableSourceScene`, `controllableUsePanel`, `controllableUsePresets`, `controllableClosePanelAtStart`, `controllableCurrentPreset`, `controllablePresetList`, `controllableBarColor`, `controllableTargetScript`
+- **Preset methods:** `ControllableSave`, `ControllableSaveAs`, `ControllableLoad`, `ControllableShow`, `ControllableLoadWithName`
+- **Events:** `controllableUiValueChanged`, `controllableValueChanged`, `controllableScriptValueChanged`
 - **From Unity:** `name`, `tag`, `transform`, `gameObject`, `enabled`
 
-`id`, `debug`, `name` and `Save` are the ones that bite in practice. This is not the full list — every public member of `MonoBehaviour` is reserved too (`Invoke`, `StartCoroutine`, `GetComponent`, `ToString`, …). `Controllable.IsReservedMemberName(string)` is the source of truth.
+The prefix shrinks the problem but does not close it. `Controllable` is a `MonoBehaviour`, so Unity's own members stay reserved and cannot be renamed — `name` is the one that bites in practice, and every public member of `MonoBehaviour` is reserved too (`Invoke`, `StartCoroutine`, `GetComponent`, `ToString`, …). `Controllable.IsReservedMemberName(string)` is the source of truth.
 
 The framework enforces this for you: the generator refuses to emit a colliding member and logs an error naming it, and a hand-written mirror that collides logs a warning at `Awake` and is ignored in favour of the built-in. Just rename your member.
 
@@ -153,7 +148,7 @@ Every exposed member gets an address:
 /OCF/{id}/{method}      invoke a method
 ```
 
-`{id}` defaults to the target script's type name, and can be overridden with the `id` field on the Controllable. Messages that do not match a registered controllable are ignored.
+`{id}` defaults to the target script's type name, and can be overridden with the `controllableId` field on the Controllable. Messages that do not match a registered controllable are ignored.
 
 Methods with parameters are reachable over OSC (their arguments map to the message arguments) but get no UI widget.
 
@@ -172,18 +167,18 @@ OSCMaster.Receivers["myReceiver"].messageReceived += (OSCMessage m) => Debug.Log
 The ControllableMaster panel carries the global buttons instead: **Save All**, **Save As All**, **Load All** and **Open Presets Folder**. The last one reveals the presets root in your file browser, works whether or not any preset has been saved, and is also on the `ControllableMaster` component in the Inspector so you can reach the folder without entering Play mode.
 
 ```
-/OCF/ControllableMaster/OpenPresetsFolder
+/OCF/ControllableMaster/ControllableOpenPresetsFolder
 ```
 
 > [!NOTE]
 > **Show** reveals a single preset file and does nothing while no preset is selected. **Open Presets Folder** always opens the folder.
 
-**Selecting a preset loads it.** Setting `currentPreset` — from the dropdown or over OSC (`/OCF/{id}/currentPreset "myPreset.pst"`) — loads that preset immediately. **Load** reloads the current preset, and **Load All** does it for every controllable. Any `[OSCMethod]` can set `showInUI = false` to stay OSC-callable without a UI button.
+**Selecting a preset loads it.** Setting `controllableCurrentPreset` — from the dropdown or over OSC (`/OCF/{id}/controllableCurrentPreset "myPreset.pst"`) — loads that preset immediately. **Load** reloads the current preset, and **Load All** does it for every controllable. Any `[OSCMethod]` can set `showInUI = false` to stay OSC-callable without a UI button.
 
-To load a specific file, use the `LoadWithName` method:
+To load a specific file, use the `ControllableLoadWithName` method:
 
 ```
-/OCF/{id}/LoadWithName "myPreset.pst"
+/OCF/{id}/ControllableLoadWithName "myPreset.pst"
 ```
 
 | Argument | Type | Meaning |

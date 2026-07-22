@@ -12,7 +12,7 @@ namespace Theoriz.OCF.Tests.Editor
     /// EditMode unit tests for TypeConverter (pure static conversion helpers).
     ///
     /// NOTE: <see cref="GetFloat_ParsesInvariantly_UnderCommaDecimalCulture"/> is an
-    /// intentional RED test. getFloat uses culture-sensitive parsing (see
+    /// intentional RED test. GetFloat uses culture-sensitive parsing (see
     /// docs/PackageAudit-2026-07-16.md, OCF P2 "silent sentinel converters"); under a
     /// comma-decimal locale it returns the fallback 0 instead of the parsed number.
     /// It passes once the parse is made culture-invariant.
@@ -22,33 +22,33 @@ namespace Theoriz.OCF.Tests.Editor
         [Test]
         public void GetFloat_ParsesInteger_And_Bool()
         {
-            Assert.AreEqual(2.5f, TypeConverter.getFloat(2.5f), 1e-6f);
-            Assert.AreEqual(3f, TypeConverter.getFloat(3), 1e-6f);
-            Assert.AreEqual(1f, TypeConverter.getFloat(true), 1e-6f);
-            Assert.AreEqual(0f, TypeConverter.getFloat(false), 1e-6f);
+            Assert.AreEqual(2.5f, TypeConverter.GetFloat(2.5f), 1e-6f);
+            Assert.AreEqual(3f, TypeConverter.GetFloat(3), 1e-6f);
+            Assert.AreEqual(1f, TypeConverter.GetFloat(true), 1e-6f);
+            Assert.AreEqual(0f, TypeConverter.GetFloat(false), 1e-6f);
         }
 
         [Test]
         public void GetBool_ParsesCommonStrings()
         {
-            Assert.IsTrue(TypeConverter.getBool("true"));
-            Assert.IsTrue(TypeConverter.getBool("1"));
-            Assert.IsFalse(TypeConverter.getBool("false"));
-            Assert.IsFalse(TypeConverter.getBool("0"));
+            Assert.IsTrue(TypeConverter.GetBool("true"));
+            Assert.IsTrue(TypeConverter.GetBool("1"));
+            Assert.IsFalse(TypeConverter.GetBool("false"));
+            Assert.IsFalse(TypeConverter.GetBool("0"));
         }
 
         [Test]
         public void GetIndexInEnum_ReturnsIndex_WhenFound()
         {
             var list = new List<string> { "Alpha", "Beta", "Gamma" };
-            Assert.AreEqual(1, TypeConverter.getIndexInEnum(list, "Beta"));
+            Assert.AreEqual(1, TypeConverter.GetIndexInEnum(list, "Beta"));
         }
 
         [Test]
         public void GetIndexInEnum_ReturnsMinusOne_WhenNotFound()
         {
             var list = new List<string> { "Alpha", "Beta" };
-            Assert.AreEqual(-1, TypeConverter.getIndexInEnum(list, "Zeta"));
+            Assert.AreEqual(-1, TypeConverter.GetIndexInEnum(list, "Zeta"));
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace Theoriz.OCF.Tests.Editor
         }
 
         // RED (known bug): culture-sensitive parsing of "1.5" fails under comma-decimal
-        // locales and getFloat falls back to 0.
+        // locales and GetFloat falls back to 0.
         [Test]
         public void GetFloat_ParsesInvariantly_UnderCommaDecimalCulture()
         {
@@ -92,8 +92,8 @@ namespace Theoriz.OCF.Tests.Editor
             try
             {
                 Thread.CurrentThread.CurrentCulture = new CultureInfo("fr-FR");
-                Assert.AreEqual(1.5f, TypeConverter.getFloat("1.5"), 1e-6f,
-                    "getFloat should parse '1.5' regardless of the current culture " +
+                Assert.AreEqual(1.5f, TypeConverter.GetFloat("1.5"), 1e-6f,
+                    "GetFloat should parse '1.5' regardless of the current culture " +
                     "(known bug: culture-sensitive TryParse returns 0 under comma-decimal locales).");
             }
             finally
@@ -111,8 +111,8 @@ namespace Theoriz.OCF.Tests.Editor
             try
             {
                 Thread.CurrentThread.CurrentCulture = new CultureInfo("fr-FR");
-                Assert.AreEqual(7, TypeConverter.getInt("7"),
-                    "getInt should parse '7' regardless of the current culture.");
+                Assert.AreEqual(7, TypeConverter.GetInt("7"),
+                    "GetInt should parse '7' regardless of the current culture.");
             }
             finally
             {

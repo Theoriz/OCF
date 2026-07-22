@@ -70,7 +70,8 @@ namespace Theoriz.OCF.Tests.Editor
         public void PresetMethodNames_MatchesTheDocumentedSet()
         {
             CollectionAssert.AreEquivalent(
-                new[] { "Save", "SaveAs", "Load", "Show" }, Controllable.PresetMethodNames);
+                new[] { "ControllableSave", "ControllableSaveAs", "ControllableLoad", "ControllableShow" },
+                Controllable.PresetMethodNames);
         }
 
         /// <summary>
@@ -82,11 +83,11 @@ namespace Theoriz.OCF.Tests.Editor
         public void GlobalMethodNames_MatchTheDocumentedSets()
         {
             CollectionAssert.AreEquivalent(
-                new[] { "SaveAll", "SaveAsAll", "LoadAll" },
+                new[] { "ControllableSaveAll", "ControllableSaveAsAll", "ControllableLoadAll" },
                 ControllableMasterControllable.AllPresetMethodNames);
 
             CollectionAssert.AreEquivalent(
-                new[] { "OpenPresetsFolder" },
+                new[] { "ControllableOpenPresetsFolder" },
                 ControllableMasterControllable.GlobalActionMethodNames);
         }
 
@@ -122,12 +123,38 @@ namespace Theoriz.OCF.Tests.Editor
         [Test]
         public void IsReservedMemberName_CoversControllablesOwnMembers()
         {
-            Assert.IsTrue(Controllable.IsReservedMemberName("Save"), "Save is an [OSCMethod] on Controllable.");
-            Assert.IsTrue(Controllable.IsReservedMemberName("LoadWithName"),
-                "LoadWithName is an [OSCMethod] on Controllable that PresetMethodNames does not list.");
-            Assert.IsTrue(Controllable.IsReservedMemberName("id"),
-                "id is a public field on Controllable, and the key ControllableMaster registers under.");
-            Assert.IsTrue(Controllable.IsReservedMemberName("debug"), "debug is a public field on Controllable.");
+            Assert.IsTrue(Controllable.IsReservedMemberName("ControllableSave"),
+                "ControllableSave is an [OSCMethod] on Controllable.");
+            Assert.IsTrue(Controllable.IsReservedMemberName("ControllableLoadWithName"),
+                "ControllableLoadWithName is an [OSCMethod] on Controllable that PresetMethodNames does not list.");
+            Assert.IsTrue(Controllable.IsReservedMemberName("controllableId"),
+                "controllableId is a public field on Controllable, and the key ControllableMaster registers under.");
+            Assert.IsTrue(Controllable.IsReservedMemberName("controllableDebug"),
+                "controllableDebug is a public field on Controllable.");
+        }
+
+        /// <summary>
+        /// The whole point of the prefix: the unprefixed spellings are the names users most often want
+        /// to expose, and every one of them used to be refused by the generator. If any of these comes
+        /// back true, a member was missed by the rename and is still occupying the name.
+        /// </summary>
+        [Test]
+        public void IsReservedMemberName_IsFalse_ForTheNamesThePrefixFreed()
+        {
+            foreach (var freed in new[]
+            {
+                "id", "debug", "folder", "targetDirectory", "sourceScene",
+                "usePanel", "usePresets", "hasPresets", "closePanelAtStart",
+                "BarColor", "TargetScript", "currentPreset", "presetList",
+                "Fields", "TargetFields", "Methods", "PreviousFieldsValues",
+                "uiValueChanged", "scriptValueChanged",
+                "Save", "SaveAs", "Load", "Show", "LoadWithName",
+            })
+            {
+                Assert.IsFalse(Controllable.IsReservedMemberName(freed),
+                    "'" + freed + "' should have been freed by the controllable prefix, but Controllable "
+                    + "still declares a member by that name.");
+            }
         }
 
         /// <summary>

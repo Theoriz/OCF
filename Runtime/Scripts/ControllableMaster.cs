@@ -307,7 +307,7 @@ public class ControllableMaster : MonoBehaviour
         if (!HasReceiverName || !OSCMaster.HasReceiver(OSCReceiverName))
             return;
 
-        OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
+        OSCMaster.Receivers[OSCReceiverName].messageReceived -= ProcessMessage;
         OSCMaster.RemoveReceiver(OSCReceiverName);
     }
 
@@ -332,7 +332,7 @@ public class ControllableMaster : MonoBehaviour
 		if (!OSCMaster.HasReceiver(OSCReceiverName))
 			return;
 
-		OSCMaster.Receivers[OSCReceiverName].messageReceived += processMessage;
+		OSCMaster.Receivers[OSCReceiverName].messageReceived += ProcessMessage;
 
 		IsConnected = true;
 
@@ -342,7 +342,7 @@ public class ControllableMaster : MonoBehaviour
         CreateZeroconfService();
     }
 
-    void processMessage(OSCMessage m)
+    void ProcessMessage(OSCMessage m)
     {
         if (m == null || string.IsNullOrEmpty(m.Address))
             return;
@@ -404,24 +404,24 @@ public class ControllableMaster : MonoBehaviour
 
     public static void Register(Controllable candidate)
     {
-        if (!RegisteredControllables.ContainsKey(candidate.id))
+        if (!RegisteredControllables.ContainsKey(candidate.controllableId))
         {
-            RegisteredControllables.Add(candidate.id, candidate);
+            RegisteredControllables.Add(candidate.controllableId, candidate);
             if(controllableAdded != null) controllableAdded(candidate);
 
-            //Debug.Log("Added " + candidate.id);
+            //Debug.Log("Added " + candidate.controllableId);
         }
         else
         {
-            Debug.LogWarning("ControllerMaster already contains a Controllable named " + candidate.id);
+            Debug.LogWarning("ControllerMaster already contains a Controllable named " + candidate.controllableId);
         }
     }
 
     public static void UnRegister(Controllable candidate)
     {
-        if (RegisteredControllables.ContainsKey(candidate.id))
+        if (RegisteredControllables.ContainsKey(candidate.controllableId))
         {
-            RegisteredControllables.Remove(candidate.id);
+            RegisteredControllables.Remove(candidate.controllableId);
             if (controllableRemoved != null) controllableRemoved(candidate);
         }
     }
@@ -429,7 +429,7 @@ public class ControllableMaster : MonoBehaviour
     public static void UpdateValue(string target, string property, List<object> values)
     {
         if (RegisteredControllables.ContainsKey(target))
-            RegisteredControllables[target].setProp(property, values);
+            RegisteredControllables[target].SetProp(property, values);
         else
             Debug.LogWarning("[ControllableMaster] Target : \"" + target + "\" is unknown !");
     }
@@ -450,7 +450,7 @@ public class ControllableMaster : MonoBehaviour
     {
         foreach (var controllable in RegisteredControllables)
         {
-            controllable.Value.Save();
+            controllable.Value.ControllableSave();
         }
     }
 
@@ -458,7 +458,7 @@ public class ControllableMaster : MonoBehaviour
     {
         foreach (var controllable in RegisteredControllables)
         {
-            controllable.Value.SaveAs();
+            controllable.Value.ControllableSaveAs();
         }
     }
 
@@ -466,7 +466,7 @@ public class ControllableMaster : MonoBehaviour
     {
         foreach (var controllable in RegisteredControllables)
         {
-            controllable.Value.Load();
+            controllable.Value.ControllableLoad();
         }
     }
 

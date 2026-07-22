@@ -86,7 +86,7 @@ public static class TypeConverter {
 
     #region Scalars
 
-    public static int getIndexInEnum(List<string> enumValueList, string selectedElement)
+    public static int GetIndexInEnum(List<string> enumValueList, string selectedElement)
     {
         var activeElementIndex = -1;
         for (var i = 0; i < enumValueList.Count; i++)
@@ -98,11 +98,11 @@ public static class TypeConverter {
         return activeElementIndex;
     }
 
-    public static object getObjectForValue(string typeString, string value)
+    public static object GetObjectForValue(string typeString, string value)
     {
-        if (typeString == "System.Single") return getFloat(value);
-        if (typeString == "System.Boolean") return getBool(value);
-        if (typeString == "System.Int32") return getInt(value);
+        if (typeString == "System.Single") return GetFloat(value);
+        if (typeString == "System.Boolean") return GetBool(value);
+        if (typeString == "System.Int32") return GetInt(value);
         if (typeString == "UnityEngine.Vector2") return StringToVector2(value);
         if (typeString == "UnityEngine.Vector2Int") return StringToVector2Int(value);
         if (typeString == "UnityEngine.Vector3") return StringToVector3(value);
@@ -114,7 +114,7 @@ public static class TypeConverter {
         return null;
     }
 
-    public static float getFloat(object value)
+    public static float GetFloat(object value)
     {
         Type t = value.GetType();
         if (t == typeof(float)) return (float)value;
@@ -131,7 +131,7 @@ public static class TypeConverter {
         return float.NaN;
     }
 
-    public static bool getBool(object value)
+    public static bool GetBool(object value)
     {
         Type t = value.GetType();
         if (t == typeof(float)) return (float)value >= 1;
@@ -154,7 +154,7 @@ public static class TypeConverter {
 
         return false;
     }
-    public static int getInt(object value)
+    public static int GetInt(object value)
     {
         Type t = value.GetType();
         if (t == typeof(float)) return (int)((float)value);

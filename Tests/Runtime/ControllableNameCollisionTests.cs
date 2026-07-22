@@ -8,14 +8,15 @@ namespace Theoriz.OCF.Tests
 {
     /// <summary>
     /// Target script declaring a method whose name collides with one of Controllable's own
-    /// [OSCMethod] members. LoadWithName is used rather than Save because it is not gated by
-    /// usePresets, so the fixture can keep presets off and avoid filesystem I/O.
+    /// [OSCMethod] members. ControllableLoadWithName is used rather than ControllableSave because it
+    /// is not gated by controllableUsePresets, so the fixture can keep presets off and avoid
+    /// filesystem I/O.
     /// </summary>
     public class CollidingTarget : MonoBehaviour
     {
         public bool loadWithNameCalled;
 
-        public void LoadWithName(string fileName)
+        public void ControllableLoadWithName(string fileName)
         {
             loadWithNameCalled = true;
         }
@@ -30,7 +31,7 @@ namespace Theoriz.OCF.Tests
     public class HidingMirror : Controllable
     {
         [OSCMethod]
-        public new void LoadWithName(string fileName)
+        public new void ControllableLoadWithName(string fileName)
         {
         }
     }
@@ -39,12 +40,12 @@ namespace Theoriz.OCF.Tests
     public class OverloadingMirror : Controllable
     {
         [OSCMethod]
-        public void LoadWithName(int slot)
+        public void ControllableLoadWithName(int slot)
         {
         }
     }
 
-    /// <summary>Mirror that counts DataLoaded calls. Since tweening was removed, loadData no longer
+    /// <summary>Mirror that counts DataLoaded calls. Since tweening was removed, LoadData no longer
     /// defers DataLoaded through a coroutine; it must invoke it exactly once, synchronously.</summary>
     public class DataLoadedCountingMirror : Controllable
     {
@@ -66,15 +67,15 @@ namespace Theoriz.OCF.Tests
     {
         static (GameObject go, CollidingTarget target, T ctrl) Build<T>() where T : Controllable
         {
-            // Build inactive so TargetScript can be wired before Controllable.Awake() binds.
+            // Build inactive so controllableTargetScript can be wired before Controllable.Awake() binds.
             var go = new GameObject("collision-test");
             go.SetActive(false);
 
             var target = go.AddComponent<CollidingTarget>();
 
             var ctrl = go.AddComponent<T>();
-            ctrl.TargetScript = target;
-            ctrl.usePresets = false; // avoid preset filesystem I/O; LoadWithName is registered regardless
+            ctrl.controllableTargetScript = target;
+            ctrl.controllableUsePresets = false; // avoid preset filesystem I/O; LoadWithName is registered regardless
 
             go.SetActive(true); // Awake() runs here
             return (go, target, ctrl);
@@ -82,10 +83,10 @@ namespace Theoriz.OCF.Tests
 
         static void AssertBoundToBuiltIn(Controllable ctrl)
         {
-            Assert.IsTrue(ctrl.Methods.ContainsKey("LoadWithName"),
-                "Controllable's built-in LoadWithName should always be registered.");
+            Assert.IsTrue(ctrl.controllableMethods.ContainsKey("ControllableLoadWithName"),
+                "Controllable's built-in ControllableLoadWithName should always be registered.");
 
-            var info = ctrl.Methods["LoadWithName"];
+            var info = ctrl.controllableMethods["ControllableLoadWithName"];
 
             Assert.IsFalse(info.fromTargetScript,
                 "A built-in must never be bound to the target script.");
@@ -148,7 +149,7 @@ namespace Theoriz.OCF.Tests
         }
 
         /// <summary>
-        /// loadData used to end with StartCoroutine(CallAfterDuration(DataLoaded, duration)); with the
+        /// LoadData used to end with StartCoroutine(CallAfterDuration(DataLoaded, duration)); with the
         /// tween path gone it calls DataLoaded() directly. A subclass override must still fire once.
         /// </summary>
         [UnityTest]
@@ -157,10 +158,10 @@ namespace Theoriz.OCF.Tests
             var (go, _, ctrl) = Build<DataLoadedCountingMirror>();
             yield return null;
 
-            ctrl.loadData(new ControllableData());
+            ctrl.LoadData(new ControllableData());
 
             Assert.AreEqual(1, ctrl.dataLoadedCount,
-                "loadData should invoke DataLoaded exactly once, synchronously.");
+                "LoadData should invoke DataLoaded exactly once, synchronously.");
 
             Object.Destroy(go);
             yield return null;

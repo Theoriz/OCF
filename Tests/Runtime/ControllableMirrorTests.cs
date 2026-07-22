@@ -14,7 +14,7 @@ namespace Theoriz.OCF.Tests
 
     /// <summary>
     /// Hand-written mirror (what ControllableGenerator would emit): an [OSCProperty] field
-    /// whose name matches a public field on the TargetScript.
+    /// whose name matches a public field on the controllableTargetScript.
     /// </summary>
     public class MirrorControllable : Controllable
     {
@@ -36,7 +36,7 @@ namespace Theoriz.OCF.Tests
         {
             pollCount++;
 
-            var target = TargetScript as MirrorTarget;
+            var target = controllableTargetScript as MirrorTarget;
             if (target == null) return;
 
             if (myValue != target.myValue)
@@ -87,7 +87,7 @@ namespace Theoriz.OCF.Tests
 
     /// <summary>
     /// Mirror that declares its own list under the same name the target script uses, the way a
-    /// hand-written mirror and presetList do. The mirror's list is the one that must win.
+    /// hand-written mirror and controllablePresetList do. The mirror's list is the one that must win.
     /// </summary>
     public class MirrorOwnedListControllable : Controllable
     {
@@ -109,7 +109,7 @@ namespace Theoriz.OCF.Tests
     {
         static (GameObject go, MirrorTarget target, MirrorControllable ctrl) BuildMirror(float initial = 0f)
         {
-            // Build inactive so TargetScript can be wired before Controllable.Awake() binds.
+            // Build inactive so controllableTargetScript can be wired before Controllable.Awake() binds.
             var go = new GameObject("mirror-test");
             go.SetActive(false);
 
@@ -117,8 +117,8 @@ namespace Theoriz.OCF.Tests
             target.myValue = initial;
 
             var ctrl = go.AddComponent<MirrorControllable>();
-            ctrl.TargetScript = target;
-            ctrl.usePresets = false; // avoid preset filesystem I/O in OnEnable/OnDisable
+            ctrl.controllableTargetScript = target;
+            ctrl.controllableUsePresets = false; // avoid preset filesystem I/O in OnEnable/OnDisable
 
             go.SetActive(true); // Awake() runs here and binds the mirror by field name
             return (go, target, ctrl);
@@ -166,20 +166,20 @@ namespace Theoriz.OCF.Tests
             go.SetActive(false);
             var target = go.AddComponent<Vector4MirrorTarget>();
             var ctrl = go.AddComponent<Vector4MirrorControllable>();
-            ctrl.TargetScript = target;
-            ctrl.usePresets = false;
+            ctrl.controllableTargetScript = target;
+            ctrl.controllableUsePresets = false;
             go.SetActive(true); // Awake() binds the mirror
             yield return null;
 
             var expected = new Vector4(1.5f, -2.25f, 3f, 4.75f);
             ctrl.vec = expected;
 
-            var data = (ControllableData)ctrl.getData();
+            var data = (ControllableData)ctrl.GetData();
             ctrl.vec = Vector4.zero;
-            ctrl.loadData(data);
+            ctrl.LoadData(data);
 
             Assert.AreEqual(expected, ctrl.vec,
-                "A Vector4 [OSCProperty] should survive a getData/loadData round-trip.");
+                "A Vector4 [OSCProperty] should survive a GetData/LoadData round-trip.");
 
             Object.Destroy(go);
             yield return null;
@@ -192,8 +192,8 @@ namespace Theoriz.OCF.Tests
 
             var target = go.AddComponent<MirrorTarget>();
             var ctrl = go.AddComponent<TypedPollControllable>();
-            ctrl.TargetScript = target;
-            ctrl.usePresets = false;
+            ctrl.controllableTargetScript = target;
+            ctrl.controllableUsePresets = false;
 
             go.SetActive(true);
             return (go, target, ctrl);
@@ -263,8 +263,8 @@ namespace Theoriz.OCF.Tests
         }
 
         /// <summary>
-        /// OSC and preset writes both go through setFieldProp, and they leave the mirror and the
-        /// target agreeing - so no poll can detect them. setFieldProp has to notify the UI itself
+        /// OSC and preset writes both go through SetFieldProp, and they leave the mirror and the
+        /// target agreeing - so no poll can detect them. SetFieldProp has to notify the UI itself
         /// or the widgets never refresh.
         /// </summary>
         [UnityTest]
@@ -276,9 +276,9 @@ namespace Theoriz.OCF.Tests
             int raised = 0;
             ctrl.controllableValueChanged += _ => raised++;
 
-            ctrl.setFieldProp(ctrl.Fields["myValue"], new List<object> { 4f });
+            ctrl.SetFieldProp(ctrl.controllableFields["myValue"], new List<object> { 4f });
 
-            Assert.AreEqual(1, raised, "setFieldProp must tell the UI the value moved.");
+            Assert.AreEqual(1, raised, "SetFieldProp must tell the UI the value moved.");
             Assert.AreEqual(4f, ctrl.myValue, 1e-6f, "The mirror should hold the written value.");
             Assert.AreEqual(4f, target.myValue, 1e-6f, "The write should reach the target script.");
 
@@ -313,8 +313,8 @@ namespace Theoriz.OCF.Tests
 
             var target = go.AddComponent<DropdownMirrorTarget>();
             var ctrl = go.AddComponent<DropdownMirrorControllable>();
-            ctrl.TargetScript = target;
-            ctrl.usePresets = false;
+            ctrl.controllableTargetScript = target;
+            ctrl.controllableUsePresets = false;
 
             go.SetActive(true);
             return (go, target, ctrl);
@@ -332,11 +332,11 @@ namespace Theoriz.OCF.Tests
             int raised = 0;
             ctrl.controllableValueChanged += _ => raised++;
 
-            ctrl.setFieldProp(ctrl.Fields["lightMode"], new List<object> { "Wash" });
+            ctrl.SetFieldProp(ctrl.controllableFields["lightMode"], new List<object> { "Wash" });
 
             Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, ctrl.lightMode, "The mirror should hold the named member.");
             Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, target.lightMode, "The write should reach the target script.");
-            Assert.AreEqual(1, raised, "setFieldProp must tell the UI the value moved.");
+            Assert.AreEqual(1, raised, "SetFieldProp must tell the UI the value moved.");
 
             Object.Destroy(go);
             yield return null;
@@ -352,7 +352,7 @@ namespace Theoriz.OCF.Tests
             var (go, target, ctrl) = BuildDropdownMirror();
             yield return null;
 
-            ctrl.setFieldProp(ctrl.Fields["lightMode"], new List<object> { 12 });
+            ctrl.SetFieldProp(ctrl.controllableFields["lightMode"], new List<object> { 12 });
 
             Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, target.lightMode,
                 "12 is Wash's declared value; resolving it as an index would give Spot.");
@@ -369,12 +369,12 @@ namespace Theoriz.OCF.Tests
 
             ctrl.lightMode = DropdownMirrorTarget.LightMode.Wash;
 
-            var data = (ControllableData)ctrl.getData();
+            var data = (ControllableData)ctrl.GetData();
             ctrl.lightMode = DropdownMirrorTarget.LightMode.None;
-            ctrl.loadData(data);
+            ctrl.LoadData(data);
 
             Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, ctrl.lightMode,
-                "An enum [OSCProperty] should survive a getData/loadData round-trip.");
+                "An enum [OSCProperty] should survive a GetData/LoadData round-trip.");
 
             Object.Destroy(go);
             yield return null;
@@ -401,7 +401,7 @@ namespace Theoriz.OCF.Tests
         }
 
         /// <summary>
-        /// The mirror is searched first. presetList is declared on Controllable itself, so losing this
+        /// The mirror is searched first. controllablePresetList is declared on Controllable itself, so losing this
         /// order would take the preset dropdown with it.
         /// </summary>
         [UnityTest]
@@ -412,8 +412,8 @@ namespace Theoriz.OCF.Tests
 
             var target = go.AddComponent<DropdownMirrorTarget>();
             var ctrl = go.AddComponent<MirrorOwnedListControllable>();
-            ctrl.TargetScript = target;
-            ctrl.usePresets = false;
+            ctrl.controllableTargetScript = target;
+            ctrl.controllableUsePresets = false;
 
             go.SetActive(true);
             yield return null;

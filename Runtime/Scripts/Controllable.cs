@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 [Serializable]
 public class ControllableData
@@ -98,30 +99,48 @@ public class Controllable : MonoBehaviour
 {
     [Header("Controllable settings")]
 
-    public MonoBehaviour TargetScript; 
+    [FormerlySerializedAs("TargetScript")]
+    public MonoBehaviour controllableTargetScript;
 
-    public Color BarColor = Color.white;
-    public string id;
-    [HideInInspector]
-    public string folder = "";
-    public bool debug = false;
-    [HideInInspector]
-    public string targetDirectory;
-    [HideInInspector]
-    public string sourceScene;
-    [HideInInspector]
-    public bool usePanel = true, usePresets = true;
-    [HideInInspector]
-    public bool hasPresets = false;
-    public bool closePanelAtStart = true;
+    [FormerlySerializedAs("BarColor")]
+    public Color controllableBarColor = Color.white;
 
-    [System.NonSerialized] public Dictionary<string, FieldInfo> Fields;
-    [System.NonSerialized] public List<object> PreviousFieldsValues;
-    [System.NonSerialized] public Dictionary<string, ClassAttributInfo> TargetFields;
+    [FormerlySerializedAs("id")]
+    public string controllableId;
 
-    [System.NonSerialized] public Dictionary<string, ClassMethodInfo> Methods;
+    [HideInInspector]
+    [FormerlySerializedAs("folder")]
+    public string controllableFolder = "";
 
-    // Snapshot of TargetFields.Values in insertion order, aligned index-for-index with PreviousFieldsValues; iterated in Update to detect target-script changes.
+    [FormerlySerializedAs("debug")]
+    public bool controllableDebug = false;
+
+    [HideInInspector]
+    [FormerlySerializedAs("targetDirectory")]
+    public string controllableTargetDirectory;
+
+    [HideInInspector]
+    [FormerlySerializedAs("sourceScene")]
+    public string controllableSourceScene;
+
+    [HideInInspector]
+    [FormerlySerializedAs("usePanel")]
+    public bool controllableUsePanel = true;
+
+    [HideInInspector]
+    [FormerlySerializedAs("usePresets")]
+    public bool controllableUsePresets = true;
+
+    [FormerlySerializedAs("closePanelAtStart")]
+    public bool controllableClosePanelAtStart = true;
+
+    [System.NonSerialized] public Dictionary<string, FieldInfo> controllableFields;
+    [System.NonSerialized] public List<object> controllablePreviousFieldsValues;
+    [System.NonSerialized] public Dictionary<string, ClassAttributInfo> controllableTargetFields;
+
+    [System.NonSerialized] public Dictionary<string, ClassMethodInfo> controllableMethods;
+
+    // Snapshot of controllableTargetFields.Values in insertion order, aligned index-for-index with controllablePreviousFieldsValues; iterated in Update to detect target-script changes.
     private ClassAttributInfo[] _targetFieldsArray;
 
     // Member name to its index in that array, so a write can refresh the value the poll compares against.
@@ -129,7 +148,7 @@ public class Controllable : MonoBehaviour
 
     public delegate void UIValueChangedEvent(string name);
 
-    public event UIValueChangedEvent uiValueChanged;
+    public event UIValueChangedEvent controllableUiValueChanged;
 
     public delegate void ControllableValueChangedEvent(string name);
 
@@ -137,11 +156,13 @@ public class Controllable : MonoBehaviour
 
     public delegate void ScriptValueChangedEvent(string name);
 
-    public event ScriptValueChangedEvent scriptValueChanged;
+    public event ScriptValueChangedEvent controllableScriptValueChanged;
     [HideInInspector]
-    [OSCProperty(targetList = "presetList", includeInPresets = false)] public string currentPreset;
+    [FormerlySerializedAs("currentPreset")]
+    [OSCProperty(targetList = "controllablePresetList", includeInPresets = false)] public string controllableCurrentPreset;
     [HideInInspector]
-    public List<string> presetList;
+    [FormerlySerializedAs("presetList")]
+    public List<string> controllablePresetList;
 
     private string lastUsedPresetFileName = "_lastUsedPreset.txt";
 
@@ -149,26 +170,26 @@ public class Controllable : MonoBehaviour
 
     public virtual void Awake()
     {
-        debug = false;
+        controllableDebug = false;
 
-        if (TargetScript == null)
-            Debug.LogError("TargetScript of " + this.GetType().ToString() + " is not set ! Aborting initialization.");
+        if (controllableTargetScript == null)
+            Debug.LogError("controllableTargetScript of " + this.GetType().ToString() + " is not set ! Aborting initialization.");
 
-        this.scriptValueChanged += OnScriptValueChanged;
-        this.uiValueChanged += OnUiValueChanged;
+        this.controllableScriptValueChanged += OnScriptValueChanged;
+        this.controllableUiValueChanged += OnUiValueChanged;
 
         //FIELDS
-        Fields = new Dictionary<string, FieldInfo>();
-        TargetFields = new Dictionary<string, ClassAttributInfo>();
-        PreviousFieldsValues = new List<object>();
+        controllableFields = new Dictionary<string, FieldInfo>();
+        controllableTargetFields = new Dictionary<string, ClassAttributInfo>();
+        controllablePreviousFieldsValues = new List<object>();
 
         FieldInfo[] objectFields = this.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
         FieldInfo[] scriptFields = objectFields;
         PropertyInfo[] scriptProperties = null;
-        if (TargetScript != null)
+        if (controllableTargetScript != null)
         {
-            scriptFields = TargetScript.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
-            scriptProperties = TargetScript.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            scriptFields = controllableTargetScript.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
+            scriptProperties = controllableTargetScript.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
         }
 
         for (int i = 0; i < objectFields.Length; i++)
@@ -178,7 +199,7 @@ public class Controllable : MonoBehaviour
             OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
             if (attribute != null)
             {
-                if (info.Name == "currentPreset" && !usePresets) continue;
+                if (info.Name == "controllableCurrentPreset" && !controllableUsePresets) continue;
 
                 //Unlike a method, a shadowing field cannot be worked around at runtime: it really
                 //exists on the derived class and Unity serializes it, while Controllable's own code
@@ -190,10 +211,10 @@ public class Controllable : MonoBehaviour
 
                 //A shadowed base field can surface here alongside the one that shadows it; both carry
                 //the same name and only one OSC address exists. The warning above already reported it.
-                if (Fields.ContainsKey(info.Name))
+                if (controllableFields.ContainsKey(info.Name))
                     continue;
 
-                Fields.Add(info.Name, info);
+                controllableFields.Add(info.Name, info);
 
                 var fieldAdded = false;
                 var propertyAdded = false;
@@ -204,10 +225,10 @@ public class Controllable : MonoBehaviour
                         var newClassAttributInfo = new ClassAttributInfo();
                         newClassAttributInfo.Field = scriptFields[j];
 
-                        TargetFields.Add(scriptFields[j].Name, newClassAttributInfo);
+                        controllableTargetFields.Add(scriptFields[j].Name, newClassAttributInfo);
 
-                        PreviousFieldsValues.Add(newClassAttributInfo.GetValue(TargetScript));
-                        info.SetValue(this, newClassAttributInfo.GetValue(TargetScript));
+                        controllablePreviousFieldsValues.Add(newClassAttributInfo.GetValue(controllableTargetScript));
+                        info.SetValue(this, newClassAttributInfo.GetValue(controllableTargetScript));
                         fieldAdded = true;
                         break;
                     }
@@ -222,9 +243,9 @@ public class Controllable : MonoBehaviour
                             var newClassAttributInfo = new ClassAttributInfo();
                             newClassAttributInfo.Property = scriptProperties[j];
 
-                            TargetFields.Add(scriptProperties[j].Name, newClassAttributInfo);
-                            PreviousFieldsValues.Add(newClassAttributInfo.GetValue(TargetScript));
-                            info.SetValue(this, newClassAttributInfo.GetValue(TargetScript));
+                            controllableTargetFields.Add(scriptProperties[j].Name, newClassAttributInfo);
+                            controllablePreviousFieldsValues.Add(newClassAttributInfo.GetValue(controllableTargetScript));
+                            info.SetValue(this, newClassAttributInfo.GetValue(controllableTargetScript));
 
                             propertyAdded = true;
                             break;
@@ -233,39 +254,39 @@ public class Controllable : MonoBehaviour
                 }
                 
                 // if(addedFieldName != "")
-                //     PreviousFieldsValues.Add(TargetFields[addedFieldName].GetValue(this));
+                //     controllablePreviousFieldsValues.Add(controllableTargetFields[addedFieldName].GetValue(this));
 
-                if (!fieldAdded && !propertyAdded && info.Name != "currentPreset")
+                if (!fieldAdded && !propertyAdded && info.Name != "controllableCurrentPreset")
                     Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCProperty] '" + info.Name
                         + "' has no matching public field/property on target '"
-                        + (TargetScript != null ? TargetScript.GetType().Name : "null")
+                        + (controllableTargetScript != null ? controllableTargetScript.GetType().Name : "null")
                         + "'. It will not be controllable.");
             }
         }
 
-        _targetFieldsArray = TargetFields.Values.ToArray();
+        _targetFieldsArray = controllableTargetFields.Values.ToArray();
 
         _targetFieldIndices = new Dictionary<string, int>(_targetFieldsArray.Length);
         for (int i = 0; i < _targetFieldsArray.Length; i++)
             _targetFieldIndices[_targetFieldsArray[i].Name] = i;
 
         //METHODS
-        Methods = new Dictionary<string, ClassMethodInfo>();
+        controllableMethods = new Dictionary<string, ClassMethodInfo>();
 
         //Controllable's own [OSCMethod] members are registered straight from typeof(Controllable) and
-        //never consult TargetScript, so a target script's same-named method cannot displace them.
+        //never consult controllableTargetScript, so a target script's same-named method cannot displace them.
         //They are taken from the base type rather than from this.GetType()'s method list because a
         //derived class declaring the same signature hides the base method from GetMethods entirely.
         foreach (var builtIn in typeof(Controllable).GetMethods(BindingFlags.Instance | BindingFlags.Public))
         {
             if (Attribute.GetCustomAttribute(builtIn, typeof(OSCMethod)) == null) continue;
-            if (Array.IndexOf(PresetMethodNames, builtIn.Name) >= 0 && !usePresets) continue;
+            if (Array.IndexOf(PresetMethodNames, builtIn.Name) >= 0 && !controllableUsePresets) continue;
 
             var builtInMethodInfo = new ClassMethodInfo();
             builtInMethodInfo.methodInfo = builtIn;
             builtInMethodInfo.fromTargetScript = false;
 
-            Methods.Add(builtIn.Name, builtInMethodInfo);
+            controllableMethods.Add(builtIn.Name, builtInMethodInfo);
         }
 
         MethodInfo[] methodFields = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
@@ -286,7 +307,7 @@ public class Controllable : MonoBehaviour
                     continue;
                 }
 
-                if (Methods.ContainsKey(info.Name))
+                if (controllableMethods.ContainsKey(info.Name))
                 {
                     Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCMethod] '" + info.Name
                         + "' is declared more than once (overloads share a single OSC address). "
@@ -301,8 +322,8 @@ public class Controllable : MonoBehaviour
                 //Matched on signature, not just name: a target's Foo(int) must not bind to a
                 //parameterless Foo(), and a name-only lookup throws on overloaded targets.
                 var parameterTypes = info.GetParameters().Select(p => p.ParameterType).ToArray();
-                var targetScriptMethod = TargetScript != null
-                    ? TargetScript.GetType().GetMethod(info.Name,
+                var targetScriptMethod = controllableTargetScript != null
+                    ? controllableTargetScript.GetType().GetMethod(info.Name,
                         BindingFlags.Instance | BindingFlags.Public, null, parameterTypes, null)
                     : null;
 
@@ -312,31 +333,31 @@ public class Controllable : MonoBehaviour
                     classMethodInfo.fromTargetScript = true;
                 }
 
-                Methods.Add(info.Name, classMethodInfo);
+                controllableMethods.Add(info.Name, classMethodInfo);
             }
         }
 
-        if (string.IsNullOrEmpty(id))
-            id = TargetScript != null ? TargetScript.GetType().Name : GetType().Name;
+        if (string.IsNullOrEmpty(controllableId))
+            controllableId = controllableTargetScript != null ? controllableTargetScript.GetType().Name : GetType().Name;
 
-        id = id.Replace(' ', '_');
-        sourceScene = SceneManager.GetActiveScene().name;
+        controllableId = controllableId.Replace(' ', '_');
+        controllableSourceScene = SceneManager.GetActiveScene().name;
     }
 
     public virtual void OnEnable()
     {
-		if (debug)
-			Debug.Log("Registering " + this.GetType().Name + " script as " + id);
+		if (controllableDebug)
+			Debug.Log("Registering " + this.GetType().Name + " script as " + controllableId);
         ControllableMaster.Register(this);
 
-        if (usePresets)
+        if (controllableUsePresets)
         {
-            presetList = new List<string>();
+            controllablePresetList = new List<string>();
             ReadFileList();
 
-            if (presetList.Count >= 1)
+            if (controllablePresetList.Count >= 1)
             {
-                currentPreset = presetList[0];
+                controllableCurrentPreset = controllablePresetList[0];
                 LoadLatestUsedPreset();
             }
         }
@@ -349,18 +370,18 @@ public class Controllable : MonoBehaviour
 
     public virtual void OnDisable()
     {
-        if (debug)
-            Debug.Log("Saving temp file with : " + currentPreset);
+        if (controllableDebug)
+            Debug.Log("Saving temp file with : " + controllableCurrentPreset);
 
-        if (usePresets)
+        if (controllableUsePresets)
         {
             WriteLastUsedPreset();
         }
 
-        if (debug)
+        if (controllableDebug)
             Debug.Log("Done saving");
 
-		if (debug)
+		if (controllableDebug)
 			Debug.Log("Unregistering " + this.GetType().Name + " script on " + this.gameObject.name);
 
 		ControllableMaster.UnRegister(this);
@@ -372,26 +393,26 @@ public class Controllable : MonoBehaviour
 
     public virtual void OnScriptValueChanged(string name)
     {
-        if (String.IsNullOrEmpty(name) || !TargetFields.ContainsKey(name))
+        if (String.IsNullOrEmpty(name) || !controllableTargetFields.ContainsKey(name))
         {
-            if (debug)
+            if (controllableDebug)
                 Debug.Log("Name : " + name + " is null in target");
             return;
         }
-        Fields[name].SetValue(this, TargetFields[name].GetValue(TargetScript));
+        controllableFields[name].SetValue(this, controllableTargetFields[name].GetValue(controllableTargetScript));
         RaiseEventValueChanged(name);
     }
 
     public virtual void OnUiValueChanged(string name)
     {
-        if (String.IsNullOrEmpty(name) || !TargetFields.ContainsKey(name)) {
-            if (debug)
+        if (String.IsNullOrEmpty(name) || !controllableTargetFields.ContainsKey(name)) {
+            if (controllableDebug)
             {
                 Debug.Log("Name : " + name + " doesn't exist in target");
             }
             return;
         }
-        TargetFields[name].SetValue(TargetScript, Fields[name].GetValue(this));
+        controllableTargetFields[name].SetValue(controllableTargetScript, controllableFields[name].GetValue(this));
 
         //The UI just wrote this value, so record it as the polled baseline too. Without this the
         //next poll reads a value it has not seen before and reports it as a script-side change.
@@ -404,12 +425,12 @@ public class Controllable : MonoBehaviour
         if (_targetFieldIndices == null || !_targetFieldIndices.TryGetValue(name, out int index))
             return;
 
-        PreviousFieldsValues[index] = _targetFieldsArray[index].GetValue(TargetScript);
+        controllablePreviousFieldsValues[index] = _targetFieldsArray[index].GetValue(controllableTargetScript);
     }
 
     /// <summary>
-    /// Detects changes made to the target script and raises <see cref="scriptValueChanged"/> for
-    /// each one.
+    /// Detects changes made to the target script and raises <see cref="controllableScriptValueChanged"/>
+    /// for each one.
     /// </summary>
     /// <remarks>
     /// This default reads every exposed member through reflection, which returns <c>object</c> and
@@ -425,25 +446,25 @@ public class Controllable : MonoBehaviour
 
         for (var i = 0; i < _targetFieldsArray.Length; i++)
         {
-            var value = _targetFieldsArray[i].GetValue(TargetScript);
+            var value = _targetFieldsArray[i].GetValue(controllableTargetScript);
 
-            if (!object.Equals(value, PreviousFieldsValues[i]))
+            if (!object.Equals(value, controllablePreviousFieldsValues[i]))
             {
                 RaiseScriptValueChanged(_targetFieldsArray[i].Name);
 
-                PreviousFieldsValues[i] = value;
+                controllablePreviousFieldsValues[i] = value;
             }
         }
     }
 
     /// <summary>
-    /// Raises <see cref="scriptValueChanged"/>. An event can only be raised from the type that
-    /// declares it, so an overriding <see cref="PollTargetScript"/> needs this.
+    /// Raises <see cref="controllableScriptValueChanged"/>. An event can only be raised from the type
+    /// that declares it, so an overriding <see cref="PollTargetScript"/> needs this.
     /// </summary>
     protected void RaiseScriptValueChanged(string name)
     {
-        if (scriptValueChanged != null)
-            scriptValueChanged(name);
+        if (controllableScriptValueChanged != null)
+            controllableScriptValueChanged(name);
     }
 
     #endregion
@@ -480,137 +501,134 @@ public class Controllable : MonoBehaviour
     public void LoadLatestUsedPreset()
     {
         //Check if the file recording the last used preset exists
-        if (!File.Exists(targetDirectory + lastUsedPresetFileName)) return;
+        if (!File.Exists(controllableTargetDirectory + lastUsedPresetFileName)) return;
 
-        var file = new StreamReader(targetDirectory + lastUsedPresetFileName);
+        var file = new StreamReader(controllableTargetDirectory + lastUsedPresetFileName);
 
         var lastPresetRead =  file.ReadLine();
         file.Close();
 
-        if (debug)
-            Debug.Log("LastUsedPreset for "+id+" : " + lastPresetRead);
+        if (controllableDebug)
+            Debug.Log("LastUsedPreset for "+controllableId+" : " + lastPresetRead);
 
         if (string.IsNullOrEmpty(lastPresetRead)) return;
 
-        currentPreset = lastPresetRead;
-        Load();
+        controllableCurrentPreset = lastPresetRead;
+        ControllableLoad();
 
-        if (scriptValueChanged != null) scriptValueChanged("currentPreset");
-        //if (uiValueChanged != null) uiValueChanged("currentPreset");
-        RaiseEventValueChanged("currentPreset");
+        if (controllableScriptValueChanged != null) controllableScriptValueChanged("controllableCurrentPreset");
+        //if (controllableUiValueChanged != null) controllableUiValueChanged("controllableCurrentPreset");
+        RaiseEventValueChanged("controllableCurrentPreset");
     }
 
     public void ReadFileList()
     {
-        presetList.Clear();
+        controllablePresetList.Clear();
 
         UpdateTargetDirectory();
 
-        Directory.CreateDirectory(targetDirectory);
+        Directory.CreateDirectory(controllableTargetDirectory);
 
         MigrateLegacyLastUsedPreset();
 
-        foreach (var t in Directory.GetFiles(targetDirectory))
+        foreach (var t in Directory.GetFiles(controllableTargetDirectory))
         {
             var onlyFileName = Path.GetFileName(t);
             //Only .pst files are presets; the last-used-preset marker (.txt) is excluded by extension
             if (onlyFileName.Split('.').Last() != "pst") continue;
-            presetList.Add(onlyFileName);
+            controllablePresetList.Add(onlyFileName);
         }
 
-        if(presetList.Count != 0)
-        {
-            hasPresets = true;
-        }
-        if (scriptValueChanged != null) scriptValueChanged("currentPreset");
-        RaiseEventValueChanged("currentPreset");
+        if (controllableScriptValueChanged != null) controllableScriptValueChanged("controllableCurrentPreset");
+        RaiseEventValueChanged("controllableCurrentPreset");
     }
 
     //The preset methods below, by name. Callers identify preset buttons/methods by matching against
     //this rather than their displayed label, which is a derived string (see GenUI's ParseNameString).
-    public static readonly string[] PresetMethodNames = { "Save", "SaveAs", "Load", "Show" };
+    public static readonly string[] PresetMethodNames =
+        { "ControllableSave", "ControllableSaveAs", "ControllableLoad", "ControllableShow" };
 
     [OSCMethod]
-    public void Save()
+    public void ControllableSave()
     {
-        if (string.IsNullOrEmpty(currentPreset))
+        if (string.IsNullOrEmpty(controllableCurrentPreset))
         {
-            SaveAs();
+            ControllableSaveAs();
             return;
         }
 
-        Save(currentPreset);
+        ControllableSave(controllableCurrentPreset);
     }
 
     [OSCMethod]
-    public void SaveAs()
+    public void ControllableSaveAs()
     {
 
         var date = DateTime.Today.Day + "-" + DateTime.Today.Month + "-" + DateTime.Today.Year + "_" +
                    DateTime.Now.Hour + "-" + DateTime.Now.Minute + "-" + DateTime.Now.Second;
         var fileName = date + ".pst";
 
-        Save(fileName);
+        ControllableSave(fileName);
     }
 
-    private void Save(string fileName)
+    private void ControllableSave(string fileName)
     {
 
         UpdateTargetDirectory();
 
-        if (debug)
-            Debug.Log("Saving in " + targetDirectory + fileName + "...");
+        if (controllableDebug)
+            Debug.Log("Saving in " + controllableTargetDirectory + fileName + "...");
         //create file
-        if (!Directory.Exists(targetDirectory)) Directory.CreateDirectory(targetDirectory);
+        if (!Directory.Exists(controllableTargetDirectory)) Directory.CreateDirectory(controllableTargetDirectory);
 
         CallMeBeforeSave();
-        File.WriteAllText(targetDirectory + fileName, JsonUtility.ToJson(this.getData()));
+        File.WriteAllText(controllableTargetDirectory + fileName, JsonUtility.ToJson(this.GetData()));
 
-        if (debug)
-            Debug.Log("Saved in " + targetDirectory + fileName);
+        if (controllableDebug)
+            Debug.Log("Saved in " + controllableTargetDirectory + fileName);
 
-        currentPreset = fileName;
+        controllableCurrentPreset = fileName;
         WriteLastUsedPreset();
 
         ReadFileList();
     }
 
     [OSCMethod]
-    public void Load()
+    public void ControllableLoad()
     {
-        LoadWithName(currentPreset);
+        ControllableLoadWithName(controllableCurrentPreset);
     }
 
     [OSCMethod]
-    public void Show() //Show preset file in explorer
+    public void ControllableShow() //Show preset file in explorer
     {
-        if (string.IsNullOrEmpty(currentPreset)) return;
+        if (string.IsNullOrEmpty(controllableCurrentPreset)) return;
 
-        var itemPath = targetDirectory + currentPreset;
+        var itemPath = controllableTargetDirectory + controllableCurrentPreset;
         itemPath = itemPath.Replace(@"/", @"\");   // explorer doesn't like front slashes
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         System.Diagnostics.Process.Start("explorer.exe", "/select," + itemPath);
 #else
         //Only Explorer can select the file itself, so elsewhere open the folder holding it.
-        ControllableMaster.OpenFolder(targetDirectory);
+        ControllableMaster.OpenFolder(controllableTargetDirectory);
 #endif
     }
 
     [OSCMethod]
-    public void LoadWithName(string fileName)
+    public void ControllableLoadWithName(string fileName)
     {
         if (!fileName.EndsWith(".pst"))
             fileName += ".pst";
 
-        if (debug)
-            Debug.Log("Loading " + fileName + " preset for " + id);
+        if (controllableDebug)
+            Debug.Log("Loading " + fileName + " preset for " + controllableId);
 
         StreamReader file;
         try
         {
-            file = new StreamReader(targetDirectory + fileName);
+            file = new StreamReader(controllableTargetDirectory + fileName);
             ControllableData cData = JsonUtility.FromJson<ControllableData>(file.ReadLine());
-            loadData(cData);
+            LoadData(cData);
             file.Close();
         }
         catch (Exception e)
@@ -618,7 +636,7 @@ public class Controllable : MonoBehaviour
             Debug.LogError("Error while loading preset : " + e.Message + e.StackTrace);
             return;
         }
-        currentPreset = fileName;
+        controllableCurrentPreset = fileName;
         WriteLastUsedPreset();
     }
 
@@ -631,7 +649,7 @@ public class Controllable : MonoBehaviour
 
     #region Members and OSC
 
-    public FieldInfo getFieldInfoByName(string requestedName)
+    public FieldInfo GetFieldInfoByName(string requestedName)
     {
         var objectFields = GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
         FieldInfo requestedField = null;
@@ -651,7 +669,7 @@ public class Controllable : MonoBehaviour
     /// </summary>
     /// <remarks>
     /// The mirror is searched first, because that is where a hand-written mirror declares its list and
-    /// where <see cref="presetList"/> lives; the target script is searched second, because a generated
+    /// where <see cref="controllablePresetList"/> lives; the target script is searched second, because a generated
     /// mirror declares no list of its own and the user's list stays on their own script. Resolved on
     /// every call rather than cached: a caller only asks when its own member changed, never per frame,
     /// and reading live means entries added at runtime are always the ones shown.
@@ -667,17 +685,17 @@ public class Controllable : MonoBehaviour
         if (mirrorField != null && typeof(List<string>).IsAssignableFrom(mirrorField.FieldType))
             return mirrorField.GetValue(this) as List<string>;
 
-        if (TargetScript == null)
+        if (controllableTargetScript == null)
             return null;
 
-        var targetField = TargetScript.GetType().GetField(listName, flags);
+        var targetField = controllableTargetScript.GetType().GetField(listName, flags);
         if (targetField != null && typeof(List<string>).IsAssignableFrom(targetField.FieldType))
-            return targetField.GetValue(TargetScript) as List<string>;
+            return targetField.GetValue(controllableTargetScript) as List<string>;
 
-        var targetProperty = TargetScript.GetType().GetProperty(listName, flags);
+        var targetProperty = controllableTargetScript.GetType().GetProperty(listName, flags);
         if (targetProperty != null && targetProperty.CanRead
             && typeof(List<string>).IsAssignableFrom(targetProperty.PropertyType))
-            return targetProperty.GetValue(TargetScript) as List<string>;
+            return targetProperty.GetValue(controllableTargetScript) as List<string>;
 
         return null;
     }
@@ -691,19 +709,19 @@ public class Controllable : MonoBehaviour
             controllableValueChanged(property);
     }
 
-    public void setProp(string property, List<object> values)
+    public void SetProp(string property, List<object> values)
     {
-        FieldInfo info = getPropInfoForAddress(property);
+        FieldInfo info = GetPropInfoForAddress(property);
         if (info != null)
         {
-            setFieldProp(info, values);
+            SetFieldProp(info, values);
             return;
         }
 
-        ClassMethodInfo mInfo = getMethodInfoForAddress(property);
+        ClassMethodInfo mInfo = GetMethodInfoForAddress(property);
         if (mInfo != null)
         {
-            setMethodProp(mInfo, values);
+            SetMethodProp(mInfo, values);
             return;
         }
     }
@@ -719,7 +737,7 @@ public class Controllable : MonoBehaviour
         return Mathf.Clamp(value, range.min, range.max);
     }
 
-    public void setFieldProp(FieldInfo info, List<object> values)
+    public void SetFieldProp(FieldInfo info, List<object> values)
     {
         OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
 
@@ -728,7 +746,7 @@ public class Controllable : MonoBehaviour
 
         string typeString = info.FieldType.ToString();
 
-        if(debug)
+        if(controllableDebug)
             Debug.Log("Setting attribut " + info.Name + " of type " + typeString + " with " + values.Count + " value(s)");
 
         // if we detect any attribute print out the data.
@@ -752,46 +770,46 @@ public class Controllable : MonoBehaviour
         {
             if (typeString == "System.Single")
             {
-                if (values.Count >= 1) info.SetValue(this, ClampToRange(info, TypeConverter.getFloat(values[0])));
+                if (values.Count >= 1) info.SetValue(this, ClampToRange(info, TypeConverter.GetFloat(values[0])));
             }
             else if (typeString == "System.Boolean")
             {
-                if (values.Count >= 1) info.SetValue(this, TypeConverter.getBool(values[0]));
+                if (values.Count >= 1) info.SetValue(this, TypeConverter.GetBool(values[0]));
             }
             else if (typeString == "System.Int32")
             {
-                if (values.Count >= 1) info.SetValue(this, (int)ClampToRange(info, TypeConverter.getInt(values[0])));
+                if (values.Count >= 1) info.SetValue(this, (int)ClampToRange(info, TypeConverter.GetInt(values[0])));
             }
             else if (typeString == "UnityEngine.Vector2")
             {
                 if (values.Count == 1) info.SetValue(this, (Vector2)values[0]);
-                if (values.Count >= 2) info.SetValue(this, new Vector2(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1])));
+                if (values.Count >= 2) info.SetValue(this, new Vector2(TypeConverter.GetFloat(values[0]), TypeConverter.GetFloat(values[1])));
             } 
             else if (typeString == "UnityEngine.Vector2Int") 
             {
                 if (values.Count == 1) info.SetValue(this, (Vector2Int)values[0]);
-                if (values.Count >= 2) info.SetValue(this, new Vector2Int(TypeConverter.getInt(values[0]), TypeConverter.getInt(values[1])));
+                if (values.Count >= 2) info.SetValue(this, new Vector2Int(TypeConverter.GetInt(values[0]), TypeConverter.GetInt(values[1])));
             } 
             else if (typeString == "UnityEngine.Vector3")
             {
                 if (values.Count == 1) info.SetValue(this, (Vector3)values[0]);
-                if (values.Count >= 3) info.SetValue(this, new Vector3(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2])));
+                if (values.Count >= 3) info.SetValue(this, new Vector3(TypeConverter.GetFloat(values[0]), TypeConverter.GetFloat(values[1]), TypeConverter.GetFloat(values[2])));
             } 
             else if (typeString == "UnityEngine.Vector3Int")
             {
                 if (values.Count == 1) info.SetValue(this, (Vector3Int)values[0]);
-                if (values.Count >= 3) info.SetValue(this, new Vector3Int(TypeConverter.getInt(values[0]), TypeConverter.getInt(values[1]), TypeConverter.getInt(values[2])));
+                if (values.Count >= 3) info.SetValue(this, new Vector3Int(TypeConverter.GetInt(values[0]), TypeConverter.GetInt(values[1]), TypeConverter.GetInt(values[2])));
             }
             else if (typeString == "UnityEngine.Vector4")
             {
                 if (values.Count == 1) info.SetValue(this, (Vector4)values[0]);
-                if (values.Count >= 4) info.SetValue(this, new Vector4(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), TypeConverter.getFloat(values[3])));
+                if (values.Count >= 4) info.SetValue(this, new Vector4(TypeConverter.GetFloat(values[0]), TypeConverter.GetFloat(values[1]), TypeConverter.GetFloat(values[2]), TypeConverter.GetFloat(values[3])));
             }
             else if (typeString == "UnityEngine.Color")
             {
                 if (values.Count == 1) info.SetValue(this, (Color)values[0]);
-                else if (values.Count >= 4) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), TypeConverter.getFloat(values[3])));
-                else if (values.Count >= 3) info.SetValue(this, new Color(TypeConverter.getFloat(values[0]), TypeConverter.getFloat(values[1]), TypeConverter.getFloat(values[2]), 1));
+                else if (values.Count >= 4) info.SetValue(this, new Color(TypeConverter.GetFloat(values[0]), TypeConverter.GetFloat(values[1]), TypeConverter.GetFloat(values[2]), TypeConverter.GetFloat(values[3])));
+                else if (values.Count >= 3) info.SetValue(this, new Color(TypeConverter.GetFloat(values[0]), TypeConverter.GetFloat(values[1]), TypeConverter.GetFloat(values[2]), 1));
             }
             else if (typeString == "System.String")
             {
@@ -799,24 +817,25 @@ public class Controllable : MonoBehaviour
                 info.SetValue(this, values[0].ToString());
             }
         }
-        if (uiValueChanged != null) uiValueChanged(info.Name);
+        if (controllableUiValueChanged != null) controllableUiValueChanged(info.Name);
 
         //Write-through happened above; now tell the UI the value moved. This has to be explicit:
         //OSC and preset writes leave the mirror and the target agreeing, so no poll - typed or
         //reflection-based - can detect them, and nothing else would refresh the widgets.
         RaiseEventValueChanged(info.Name);
 
-        // Selecting a preset (via the dropdown or by setting currentPreset over OSC) loads it immediately.
-        if (info.Name == "currentPreset" && usePresets && !string.IsNullOrEmpty(currentPreset))
-            Load();
+        // Selecting a preset (via the dropdown or over OSC) loads it immediately.
+        if (info.Name == "controllableCurrentPreset" && controllableUsePresets
+            && !string.IsNullOrEmpty(controllableCurrentPreset))
+            ControllableLoad();
     }
 
-    public void setMethodProp(ClassMethodInfo info, List<object> values)
+    public void SetMethodProp(ClassMethodInfo info, List<object> values)
     {
 
         object[] parameters = new object[info.methodInfo.GetParameters().Length];
 
-        if(debug) Debug.Log("Set Method, num expected parameters : " + parameters.Length);
+        if(controllableDebug) Debug.Log("Set Method, num expected parameters : " + parameters.Length);
 
         int valueIndex = 0;
         for(int i=0;i<parameters.Length;i++)
@@ -828,7 +847,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 1)
                 {
-                    parameters[i] = TypeConverter.getFloat(values[valueIndex]);
+                    parameters[i] = TypeConverter.GetFloat(values[valueIndex]);
                     valueIndex += 1;
                 }
             }
@@ -836,7 +855,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 1)
                 {
-                    parameters[i] = TypeConverter.getBool(values[valueIndex]);
+                    parameters[i] = TypeConverter.GetBool(values[valueIndex]);
                     valueIndex += 1;
                 }
             }
@@ -844,7 +863,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 1)
                 {
-                    parameters[i] = TypeConverter.getInt(values[valueIndex]);
+                    parameters[i] = TypeConverter.GetInt(values[valueIndex]);
                     valueIndex += 1;
                 }
             }
@@ -852,7 +871,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 2)
                 {
-                    parameters[i] = new Vector2(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]));
+                    parameters[i] = new Vector2(TypeConverter.GetFloat(values[valueIndex]), TypeConverter.GetFloat(values[valueIndex + 1]));
                     valueIndex += 2;
                 }
             } 
@@ -860,7 +879,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 2) 
                 {
-                    parameters[i] = new Vector2Int(TypeConverter.getInt(values[valueIndex]), TypeConverter.getInt(values[valueIndex + 1]));
+                    parameters[i] = new Vector2Int(TypeConverter.GetInt(values[valueIndex]), TypeConverter.GetInt(values[valueIndex + 1]));
                     valueIndex += 2;
                 }
             } 
@@ -868,7 +887,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 3)
                 {
-                    parameters[i] = new Vector3(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]));
+                    parameters[i] = new Vector3(TypeConverter.GetFloat(values[valueIndex]), TypeConverter.GetFloat(values[valueIndex + 1]), TypeConverter.GetFloat(values[valueIndex + 2]));
                     valueIndex += 3;
                 }
             } 
@@ -876,7 +895,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 3)
                 {
-                    parameters[i] = new Vector3Int(TypeConverter.getInt(values[valueIndex]), TypeConverter.getInt(values[valueIndex + 1]), TypeConverter.getInt(values[valueIndex + 2]));
+                    parameters[i] = new Vector3Int(TypeConverter.GetInt(values[valueIndex]), TypeConverter.GetInt(values[valueIndex + 1]), TypeConverter.GetInt(values[valueIndex + 2]));
                     valueIndex += 3;
                 }
             }
@@ -884,7 +903,7 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 4)
                 {
-                    parameters[i] = new Vector4(TypeConverter.getFloat(values[valueIndex]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), TypeConverter.getFloat(values[valueIndex + 3]));
+                    parameters[i] = new Vector4(TypeConverter.GetFloat(values[valueIndex]), TypeConverter.GetFloat(values[valueIndex + 1]), TypeConverter.GetFloat(values[valueIndex + 2]), TypeConverter.GetFloat(values[valueIndex + 3]));
                     valueIndex += 4;
                 }
             }
@@ -892,12 +911,12 @@ public class Controllable : MonoBehaviour
             {
                 if (values.Count >= valueIndex + 4)
                 {
-                    parameters[i] = new Color(TypeConverter.getFloat(values[valueIndex + 0]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), TypeConverter.getFloat(values[valueIndex + 3]));
+                    parameters[i] = new Color(TypeConverter.GetFloat(values[valueIndex + 0]), TypeConverter.GetFloat(values[valueIndex + 1]), TypeConverter.GetFloat(values[valueIndex + 2]), TypeConverter.GetFloat(values[valueIndex + 3]));
                     valueIndex += 4;
                 }
                 else if (values.Count >= valueIndex + 3)
                 {
-                    parameters[i] = new Color(TypeConverter.getFloat(values[valueIndex + 0]), TypeConverter.getFloat(values[valueIndex + 1]), TypeConverter.getFloat(values[valueIndex + 2]), 1);
+                    parameters[i] = new Color(TypeConverter.GetFloat(values[valueIndex + 0]), TypeConverter.GetFloat(values[valueIndex + 1]), TypeConverter.GetFloat(values[valueIndex + 2]), 1);
                     valueIndex += 3;
                 }
 
@@ -916,16 +935,16 @@ public class Controllable : MonoBehaviour
         if(!info.fromTargetScript)
             info.methodInfo.Invoke(this, parameters);
         else
-            info.methodInfo.Invoke(TargetScript, parameters);
+            info.methodInfo.Invoke(controllableTargetScript, parameters);
     }
 
     
 
-    public FieldInfo getPropInfoForAddress(string address)
+    public FieldInfo GetPropInfoForAddress(string address)
     {
-        if (Fields.ContainsKey(address))
+        if (controllableFields.ContainsKey(address))
         {
-            return Fields[address];
+            return controllableFields[address];
         }
         else
         {
@@ -933,11 +952,11 @@ public class Controllable : MonoBehaviour
         }
     }
 
-    public ClassMethodInfo getMethodInfoForAddress(string address)
+    public ClassMethodInfo GetMethodInfoForAddress(string address)
     {
-        if (Methods.ContainsKey(address))
+        if (controllableMethods.ContainsKey(address))
         {
-            return Methods[address];
+            return controllableMethods[address];
         }
         else
         {
@@ -949,20 +968,20 @@ public class Controllable : MonoBehaviour
 
     #region Preset data and files
 
-    public object getData()
+    public object GetData()
     {
         ControllableData data = new ControllableData();
-        data.dataID = id;
+        data.dataID = controllableId;
 
-        foreach (FieldInfo p in Fields.Values)
+        foreach (FieldInfo p in controllableFields.Values)
         {
             OSCProperty attribute = Attribute.GetCustomAttribute(p, typeof(OSCProperty)) as OSCProperty;
 
-            //A read-only member is never restored - setFieldProp refuses to write one - so recording
+            //A read-only member is never restored - SetFieldProp refuses to write one - so recording
             //it would put a value in the file that no load can apply.
             if (attribute.includeInPresets && !attribute.readOnly)
             {
-                if(debug)
+                if(controllableDebug)
                     Debug.Log("Attribute : " + p.Name + " of type " + p.FieldType + " is saved.");
 
                 data.nameList.Add(p.Name);
@@ -1004,26 +1023,26 @@ public class Controllable : MonoBehaviour
         return data;
     }
 
-    public void loadData(ControllableData data)
+    public void LoadData(ControllableData data)
     {
         int index = 0;
         foreach (string dn in data.nameList)
         {
             FieldInfo info;
-            if (Fields.TryGetValue(dn, out info))
+            if (controllableFields.TryGetValue(dn, out info))
             {
                 List<object> values = new List<object>();
 
                 //An enum is routed on the field's Type before the string-keyed converter is asked:
-                //saveData writes the member name, and setFieldProp resolves it from the FieldInfo.
+                //saveData writes the member name, and SetFieldProp resolves it from the FieldInfo.
                 if (info.FieldType.IsEnum)
                 {
                     values.Add(data.valueList[index]);
-                    setFieldProp(Fields[dn], values);
+                    SetFieldProp(controllableFields[dn], values);
                 }
                 else
                 {
-                    var convertedObject = TypeConverter.getObjectForValue(info.FieldType.ToString(), data.valueList[index]);
+                    var convertedObject = TypeConverter.GetObjectForValue(info.FieldType.ToString(), data.valueList[index]);
 
                     if (convertedObject == null)
                         Debug.LogWarning("[OCF] " + GetType().Name + ": cannot restore '" + dn
@@ -1031,7 +1050,7 @@ public class Controllable : MonoBehaviour
                     else
                     {
                         values.Add(convertedObject);
-                        setFieldProp(Fields[dn], values);
+                        SetFieldProp(controllableFields[dn], values);
                     }
                 }
             }
@@ -1044,26 +1063,27 @@ public class Controllable : MonoBehaviour
     void UpdateTargetDirectory() {
 
         //Where this controllable's presets sit under the shared root: one folder per scene (or per
-        //'folder' override), one per controllable id.
-        string subPath = (folder.Length > 0 ? folder : sourceScene) + "/" + id + "/";
+        //'controllableFolder' override), one per controllable id.
+        string subPath = (controllableFolder.Length > 0 ? controllableFolder : controllableSourceScene)
+                         + "/" + controllableId + "/";
 
 #if UNITY_STANDALONE || UNITY_EDITOR
         //The root is resolved once by ControllableMaster, which also owns the command-line and
         //inspector overrides. It always ends in '/'.
-        targetDirectory = ControllableMaster.PresetRootDirectory + subPath;
+        controllableTargetDirectory = ControllableMaster.PresetRootDirectory + subPath;
 #endif
 #if UNITY_ANDROID && !UNITY_EDITOR
         //persistentDataPath is the only writable location on Android, so the overrides do not apply.
-        targetDirectory = Application.persistentDataPath + "/Presets/" + subPath;
+        controllableTargetDirectory = Application.persistentDataPath + "/Presets/" + subPath;
 #endif
     }
 
     void WriteLastUsedPreset()
     {
-        if (!string.IsNullOrEmpty(currentPreset))
+        if (!string.IsNullOrEmpty(controllableCurrentPreset))
         {
             //write last loaded preset
-            File.WriteAllText(targetDirectory + lastUsedPresetFileName, currentPreset);
+            File.WriteAllText(controllableTargetDirectory + lastUsedPresetFileName, controllableCurrentPreset);
         }
     }
 
@@ -1071,10 +1091,10 @@ public class Controllable : MonoBehaviour
     // preset. Adopt its content under the new name and remove the legacy file.
     void MigrateLegacyLastUsedPreset()
     {
-        var legacyPath = targetDirectory + "_temp.pst";
+        var legacyPath = controllableTargetDirectory + "_temp.pst";
         if (!File.Exists(legacyPath)) return;
 
-        var newPath = targetDirectory + lastUsedPresetFileName;
+        var newPath = controllableTargetDirectory + lastUsedPresetFileName;
         if (File.Exists(newPath))
             File.Delete(legacyPath);      // new file wins; drop the stale legacy one
         else

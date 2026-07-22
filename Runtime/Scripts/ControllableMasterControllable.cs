@@ -23,14 +23,14 @@ public class ControllableMasterControllable : Controllable {
     [OSCMethod]
     public void RefreshIP()
     {
-        (TargetScript as ControllableMaster).RefreshIP();
+        (controllableTargetScript as ControllableMaster).RefreshIP();
     }
 
     //Written by hand for the same reason the generator emits one: Controllable's reflection poll
     //returns object, so it would box OSCInputPort, IncrementalConnect and IsConnected once per frame.
     protected override void PollTargetScript()
     {
-        var target = TargetScript as ControllableMaster;
+        var target = controllableTargetScript as ControllableMaster;
         if (target == null) return;
 
         if (IPAddress != target.IPAddress) { IPAddress = target.IPAddress; RaiseScriptValueChanged("IPAddress"); }
@@ -46,35 +46,36 @@ public class ControllableMasterControllable : Controllable {
     //The global preset methods below, by name. These exist only on this class, so matching a button
     //by name alone is not enough to identify one — a target script may legitimately expose its own
     //SaveAll. Callers must also check the controllable is a ControllableMasterControllable.
-    public static readonly string[] AllPresetMethodNames = { "SaveAll", "SaveAsAll", "LoadAll" };
+    public static readonly string[] AllPresetMethodNames =
+        { "ControllableSaveAll", "ControllableSaveAsAll", "ControllableLoadAll" };
 
     //Global buttons that are not preset operations. They get their own row under the preset row,
     //rather than being squeezed in beside Save All - their labels are too long to share a row.
-    public static readonly string[] GlobalActionMethodNames = { "OpenPresetsFolder" };
+    public static readonly string[] GlobalActionMethodNames = { "ControllableOpenPresetsFolder" };
 
     //On this class rather than Controllable so there is one global button instead of one per panel,
     //and so the name stays out of Controllable's reserved members - which would otherwise forbid it
     //as an [OSCExposed] name in every user script.
     [OSCMethod]
-    public void OpenPresetsFolder()
+    public void ControllableOpenPresetsFolder()
     {
-        (TargetScript as ControllableMaster).OpenPresetsFolder();
+        (controllableTargetScript as ControllableMaster).OpenPresetsFolder();
     }
 
     [OSCMethod]
-    public void SaveAll()
+    public void ControllableSaveAll()
     {
         ControllableMaster.SaveAllPresets();
     }
 
     [OSCMethod]
-    public void SaveAsAll()
+    public void ControllableSaveAsAll()
     {
         ControllableMaster.SaveAsAllPresets();
     }
 
     [OSCMethod]
-    public void LoadAll()
+    public void ControllableLoadAll()
     {
         ControllableMaster.LoadAllPresets();
     }

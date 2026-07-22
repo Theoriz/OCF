@@ -64,8 +64,8 @@ namespace Theoriz.OCF.Tests
     /// PlayMode tests for a full preset round-trip: every exposed member is saved to a real .pst
     /// file, changed on the target script, and restored by loading that file back.
     ///
-    /// It goes through the file rather than through getData/loadData directly, so the JSON encoding,
-    /// the per-type string formatting in getData and the parsing in loadData are all covered - the
+    /// It goes through the file rather than through GetData/LoadData directly, so the JSON encoding,
+    /// the per-type string formatting in GetData and the parsing in LoadData are all covered - the
     /// three places a type can be saved in a shape it cannot be read back from.
     ///
     /// Presets are written under a temporary folder, pointed at by ControllableMaster's
@@ -176,16 +176,16 @@ namespace Theoriz.OCF.Tests
 
         static (GameObject go, AllTypesTarget target, AllTypesControllable ctrl) BuildAllTypes()
         {
-            // Build inactive so TargetScript can be wired before Controllable.Awake() binds.
+            // Build inactive so controllableTargetScript can be wired before Controllable.Awake() binds.
             var go = new GameObject("all-types-test");
             go.SetActive(false);
 
             var target = go.AddComponent<AllTypesTarget>();
             var ctrl = go.AddComponent<AllTypesControllable>();
-            ctrl.TargetScript = target;
-            ctrl.usePresets = true;
+            ctrl.controllableTargetScript = target;
+            ctrl.controllableUsePresets = true;
             //A fixed folder rather than the test scene's name, so the preset path is predictable.
-            ctrl.folder = "RoundTrip";
+            ctrl.controllableFolder = "RoundTrip";
 
             go.SetActive(true); // Awake() binds the mirror, OnEnable() prepares the preset folder
             return (go, target, ctrl);
@@ -262,8 +262,8 @@ namespace Theoriz.OCF.Tests
             ctrl.Update(); // poll picks the values up into the mirror
             AssertMirrorHolds(ctrl, Saved, "The poll should have read the target's values");
 
-            ctrl.SaveAs();
-            var presetFileName = ctrl.currentPreset;
+            ctrl.ControllableSaveAs();
+            var presetFileName = ctrl.controllableCurrentPreset;
             Assert.IsNotEmpty(presetFileName, "SaveAs should record the file it wrote as currentPreset.");
 
             // Change every member on the target script, and let the poll carry them to the mirror.
@@ -273,7 +273,7 @@ namespace Theoriz.OCF.Tests
             ctrl.Update();
             AssertMirrorHolds(ctrl, Overwritten, "The values should have changed before the preset is loaded back");
 
-            ctrl.LoadWithName(presetFileName);
+            ctrl.ControllableLoadWithName(presetFileName);
 
             AssertMirrorHolds(ctrl, Saved, "Loading the preset should restore the mirror");
             AssertTargetHolds(target, Saved, "Loading the preset should write through to the target script");
@@ -310,9 +310,9 @@ namespace Theoriz.OCF.Tests
 
             WriteToTarget(target, Saved);
             ctrl.Update();
-            ctrl.SaveAs();
+            ctrl.ControllableSaveAs();
 
-            var presetPath = ctrl.targetDirectory + ctrl.currentPreset;
+            var presetPath = ctrl.controllableTargetDirectory + ctrl.controllableCurrentPreset;
             Assert.IsTrue(File.Exists(presetPath), "SaveAs should have written " + presetPath);
 
             var contents = File.ReadAllText(presetPath);
@@ -327,7 +327,7 @@ namespace Theoriz.OCF.Tests
             // Drop everything the controllable holds, then load: nothing but the file can supply it.
             WriteToTarget(target, Overwritten);
             ctrl.Update();
-            ctrl.LoadWithName(ctrl.currentPreset);
+            ctrl.ControllableLoadWithName(ctrl.controllableCurrentPreset);
 
             AssertMirrorHolds(ctrl, Saved, "The values should come back from the file");
 

@@ -182,9 +182,9 @@ public class AddControllableComponentMenu : Editor
 
         // Initialize added controllable
         Controllable addedControllable = addedComponent as Controllable;
-        addedControllable.TargetScript = sourceComponent as MonoBehaviour;
-        addedControllable.BarColor = UnityEngine.Random.ColorHSV(0, 1, .6f, 1, 1, 1, 1, 1);
-        addedControllable.id = sourceType.Name;
+        addedControllable.controllableTargetScript = sourceComponent as MonoBehaviour;
+        addedControllable.controllableBarColor = UnityEngine.Random.ColorHSV(0, 1, .6f, 1, 1, 1, 1, 1);
+        addedControllable.controllableId = sourceType.Name;
     }
 
     #endregion

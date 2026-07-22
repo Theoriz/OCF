@@ -190,7 +190,7 @@ public class {newName} : Controllable
                 string paramNames = string.Join(", ", parameters.Select(p => p.Name));
                 string callPrefix = method.ReturnType == typeof(void) ? "" : "return ";
 
-                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        {callPrefix}(TargetScript as {type.FullName}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
+                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        {callPrefix}(controllableTargetScript as {type.FullName}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
             }
         }
 
@@ -219,7 +219,7 @@ public class {newName} : Controllable
         return "    //Replaces Controllable's reflection-based poll, which boxes every exposed value every frame.\r\n"
              + "    protected override void PollTargetScript()\r\n"
              + "    {\r\n"
-             + $"        var target = TargetScript as {typeName};\r\n"
+             + $"        var target = controllableTargetScript as {typeName};\r\n"
              + "        if (target == null) return;\r\n"
              + "\r\n"
              + comparisons
