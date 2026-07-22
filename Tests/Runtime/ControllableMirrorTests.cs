@@ -60,6 +60,43 @@ namespace Theoriz.OCF.Tests
     }
 
     /// <summary>
+    /// Target with an enum field whose members carry explicit, non-sequential values, and a list a
+    /// string member is chosen from - the two dropdown routes, in the shape a generated mirror
+    /// produces them.
+    /// </summary>
+    public class DropdownMirrorTarget : MonoBehaviour
+    {
+        public enum LightMode { None = 0, Spot = 5, Wash = 12 }
+
+        public LightMode lightMode = LightMode.None;
+
+        public System.Collections.Generic.List<string> palettes = new System.Collections.Generic.List<string> { "warm", "cool" };
+        public string palette = "warm";
+    }
+
+    /// <summary>
+    /// Mirror exposing both, as ControllableGenerator emits them: the enum is declared with its real
+    /// type, and the list stays on the target script rather than being duplicated here.
+    /// </summary>
+    public class DropdownMirrorControllable : Controllable
+    {
+        [OSCProperty] public DropdownMirrorTarget.LightMode lightMode;
+
+        [OSCProperty(targetList = "palettes")] public string palette;
+    }
+
+    /// <summary>
+    /// Mirror that declares its own list under the same name the target script uses, the way a
+    /// hand-written mirror and presetList do. The mirror's list is the one that must win.
+    /// </summary>
+    public class MirrorOwnedListControllable : Controllable
+    {
+        public System.Collections.Generic.List<string> palettes = new System.Collections.Generic.List<string> { "mirror-a", "mirror-b" };
+
+        [OSCProperty(targetList = "palettes")] public string palette;
+    }
+
+    /// <summary>
     /// PlayMode tests for the Controllable "mirror" pattern.
     ///
     /// NOTE: <see cref="ScriptChange_RaisesControllableValueChanged_ExactlyOnce"/> is an
@@ -264,6 +301,140 @@ namespace Theoriz.OCF.Tests
 
             Assert.AreEqual(2f, ctrl.myValue, 1e-6f,
                 "Mirrors that do not override PollTargetScript must keep working on the reflection path.");
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        static (GameObject go, DropdownMirrorTarget target, DropdownMirrorControllable ctrl) BuildDropdownMirror()
+        {
+            var go = new GameObject("dropdown-test");
+            go.SetActive(false);
+
+            var target = go.AddComponent<DropdownMirrorTarget>();
+            var ctrl = go.AddComponent<DropdownMirrorControllable>();
+            ctrl.TargetScript = target;
+            ctrl.usePresets = false;
+
+            go.SetActive(true);
+            return (go, target, ctrl);
+        }
+
+        /// <summary>
+        /// An enum is set from its member name, which is what OSC carries and what saveData writes.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator EnumProperty_IsSetByName_AndReachesTheTargetScript()
+        {
+            var (go, target, ctrl) = BuildDropdownMirror();
+            yield return null;
+
+            int raised = 0;
+            ctrl.controllableValueChanged += _ => raised++;
+
+            ctrl.setFieldProp(ctrl.Fields["lightMode"], new List<object> { "Wash" });
+
+            Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, ctrl.lightMode, "The mirror should hold the named member.");
+            Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, target.lightMode, "The write should reach the target script.");
+            Assert.AreEqual(1, raised, "setFieldProp must tell the UI the value moved.");
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        /// <summary>
+        /// Wash is the third member but its declared value is 12. The mechanism this replaced stored
+        /// the member's position, so it wrote 2 here and every explicitly-valued enum was wrong.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator EnumProperty_IsSetByDeclaredValue_NotByIndex()
+        {
+            var (go, target, ctrl) = BuildDropdownMirror();
+            yield return null;
+
+            ctrl.setFieldProp(ctrl.Fields["lightMode"], new List<object> { 12 });
+
+            Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, target.lightMode,
+                "12 is Wash's declared value; resolving it as an index would give Spot.");
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator EnumProperty_RoundTripsThrough_GetData_LoadData()
+        {
+            var (go, _, ctrl) = BuildDropdownMirror();
+            yield return null;
+
+            ctrl.lightMode = DropdownMirrorTarget.LightMode.Wash;
+
+            var data = (ControllableData)ctrl.getData();
+            ctrl.lightMode = DropdownMirrorTarget.LightMode.None;
+            ctrl.loadData(data);
+
+            Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, ctrl.lightMode,
+                "An enum [OSCProperty] should survive a getData/loadData round-trip.");
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        /// <summary>
+        /// A generated mirror declares no list of its own, so the entries have to come off the target
+        /// script. This is what lets [OSCExposed(targetList = ...)] work without hand editing.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator GetTargetList_FindsAListOnTheTargetScript()
+        {
+            var (go, target, ctrl) = BuildDropdownMirror();
+            yield return null;
+
+            CollectionAssert.AreEqual(target.palettes, ctrl.GetTargetList("palettes"));
+
+            //Read live, so entries added at runtime are the ones a dropdown shows on its next refresh.
+            target.palettes.Add("neutral");
+            CollectionAssert.Contains(ctrl.GetTargetList("palettes"), "neutral");
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        /// <summary>
+        /// The mirror is searched first. presetList is declared on Controllable itself, so losing this
+        /// order would take the preset dropdown with it.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator GetTargetList_PrefersTheMirrorsOwnList()
+        {
+            var go = new GameObject("mirror-list-test");
+            go.SetActive(false);
+
+            var target = go.AddComponent<DropdownMirrorTarget>();
+            var ctrl = go.AddComponent<MirrorOwnedListControllable>();
+            ctrl.TargetScript = target;
+            ctrl.usePresets = false;
+
+            go.SetActive(true);
+            yield return null;
+
+            CollectionAssert.AreEqual(ctrl.palettes, ctrl.GetTargetList("palettes"),
+                "A list declared on the mirror must win over one of the same name on the target script.");
+
+            Object.Destroy(go);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetTargetList_ReturnsNull_ForANameThatResolvesToNothing()
+        {
+            var (go, _, ctrl) = BuildDropdownMirror();
+            yield return null;
+
+            Assert.IsNull(ctrl.GetTargetList("nope"));
+            Assert.IsNull(ctrl.GetTargetList(""));
+            //'palette' exists but is a string, not a list.
+            Assert.IsNull(ctrl.GetTargetList("palette"));
 
             Object.Destroy(go);
             yield return null;

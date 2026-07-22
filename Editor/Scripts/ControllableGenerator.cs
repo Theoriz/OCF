@@ -143,6 +143,18 @@ public class {newName} : Controllable
                 continue;
             }
 
+            //A targetList names the List<string> the member is chosen from. It is resolved by name at
+            //runtime, so a name that resolves to nothing would fail silently - it is checked here,
+            //where the target type is in hand and the user is looking at the console.
+            string targetList = ReadAttributeString(oscAttributeType, oscExposedInstance, "targetList");
+            if (!string.IsNullOrEmpty(targetList) && !(member is MethodInfo)
+                && !HasStringList(type, targetList))
+            {
+                Debug.LogError($"{type.Name}.{member.Name} has [OSCExposed(targetList = \"{targetList}\")] "
+                    + $"but {type.Name} has no public List<string> called '{targetList}'. Skipped.");
+                continue;
+            }
+
             if (member is FieldInfo field)
             {
                 if (!field.IsPublic)
@@ -150,7 +162,7 @@ public class {newName} : Controllable
                     Debug.LogWarning($"{type.Name}.{field.Name} has [OSCExposed] but is not public. Ignored.");
                     continue;
                 }
-                string attributes = GetAttributes(field, oscAttributeType, oscExposedInstance);
+                string attributes = GetAttributes(field, oscAttributeType, oscExposedInstance, targetList);
                 variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n\r\n";
                 pollComparisons += BuildPollComparison(field.Name, field.FieldType);
             }
@@ -164,7 +176,7 @@ public class {newName} : Controllable
                     Debug.LogWarning($"{type.Name}.{prop.Name} has [OSCExposed] but is not public. Ignored.");
                     continue;
                 }
-                string attributes = GetAttributes(prop, oscAttributeType, oscExposedInstance);
+                string attributes = GetAttributes(prop, oscAttributeType, oscExposedInstance, targetList);
                 variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n\r\n";
                 pollComparisons += BuildPollComparison(prop.Name, prop.PropertyType);
             }
@@ -262,7 +274,44 @@ public class {newName} : Controllable
 
     #region Source text helpers
 
-    private static string GetAttributes(MemberInfo member, Type oscAttributeType, Attribute oscInstance)
+    //Whether the target script carries a public List<string> under this name, as a field or as a
+    //readable property - the two shapes Controllable.GetTargetList resolves at runtime.
+    private static bool HasStringList(Type type, string listName)
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
+
+        var field = type.GetField(listName, flags);
+        if (field != null && typeof(System.Collections.Generic.List<string>).IsAssignableFrom(field.FieldType))
+            return true;
+
+        var property = type.GetProperty(listName, flags);
+        return property != null && property.CanRead
+            && typeof(System.Collections.Generic.List<string>).IsAssignableFrom(property.PropertyType);
+    }
+
+    //The generator never hard-references OSCExposed, so its options are read off the instance by
+    //name, tolerating either a field or a property.
+    private static string ReadAttributeString(Type attributeType, Attribute instance, string optionName)
+    {
+        var field = attributeType.GetField(optionName);
+        if (field != null)
+            return field.GetValue(instance) as string;
+
+        var property = attributeType.GetProperty(optionName);
+        return property != null ? property.GetValue(instance) as string : null;
+    }
+
+    private static bool ReadAttributeBool(Type attributeType, Attribute instance, string optionName)
+    {
+        var field = attributeType.GetField(optionName);
+        if (field != null)
+            return (bool)field.GetValue(instance);
+
+        var property = attributeType.GetProperty(optionName);
+        return property != null && (bool)property.GetValue(instance);
+    }
+
+    private static string GetAttributes(MemberInfo member, Type oscAttributeType, Attribute oscInstance, string targetList)
     {
         string attributes = "";
 
@@ -281,22 +330,18 @@ public class {newName} : Controllable
         if (tooltip != null)
             attributes += $"    [Tooltip(\"{EscapeString(tooltip.tooltip)}\")]\r\n";
 
-        // OSCProperty logic
-        bool isReadOnly = false;
-        var readOnlyField = oscAttributeType.GetField("readOnly");
-        if (readOnlyField != null)
-        {
-            isReadOnly = (bool)readOnlyField.GetValue(oscInstance);
-        }
-        else
-        {
-            var readOnlyProp = oscAttributeType.GetProperty("readOnly");
-            if (readOnlyProp != null)
-                isReadOnly = (bool)readOnlyProp.GetValue(oscInstance);
-        }
+        // OSCProperty logic: every [OSCExposed] option that has an [OSCProperty] equivalent is
+        // forwarded, so a generated mirror reaches them without being hand-edited.
+        var oscPropArgs = new System.Collections.Generic.List<string>();
 
-        string oscPropArgs = isReadOnly ? "(readOnly = true)" : "";
-        attributes += $"    [OSCProperty{oscPropArgs}]\r\n";
+        if (ReadAttributeBool(oscAttributeType, oscInstance, "readOnly"))
+            oscPropArgs.Add("readOnly = true");
+
+        if (!string.IsNullOrEmpty(targetList))
+            oscPropArgs.Add($"targetList = \"{EscapeString(targetList)}\"");
+
+        string oscPropSuffix = oscPropArgs.Count == 0 ? "" : $"({string.Join(", ", oscPropArgs)})";
+        attributes += $"    [OSCProperty{oscPropSuffix}]\r\n";
 
         return attributes;
     }

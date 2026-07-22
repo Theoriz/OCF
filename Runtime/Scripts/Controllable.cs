@@ -645,6 +645,43 @@ public class Controllable : MonoBehaviour
         return requestedField;
     }
 
+    /// <summary>
+    /// The live <c>List&lt;string&gt;</c> an <c>[OSCProperty(targetList = "...")]</c> name refers to,
+    /// or null when the name resolves to nothing usable.
+    /// </summary>
+    /// <remarks>
+    /// The mirror is searched first, because that is where a hand-written mirror declares its list and
+    /// where <see cref="presetList"/> lives; the target script is searched second, because a generated
+    /// mirror declares no list of its own and the user's list stays on their own script. Resolved on
+    /// every call rather than cached: a caller only asks when its own member changed, never per frame,
+    /// and reading live means entries added at runtime are always the ones shown.
+    /// </remarks>
+    public List<string> GetTargetList(string listName)
+    {
+        if (string.IsNullOrEmpty(listName))
+            return null;
+
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
+
+        var mirrorField = GetType().GetField(listName, flags);
+        if (mirrorField != null && typeof(List<string>).IsAssignableFrom(mirrorField.FieldType))
+            return mirrorField.GetValue(this) as List<string>;
+
+        if (TargetScript == null)
+            return null;
+
+        var targetField = TargetScript.GetType().GetField(listName, flags);
+        if (targetField != null && typeof(List<string>).IsAssignableFrom(targetField.FieldType))
+            return targetField.GetValue(TargetScript) as List<string>;
+
+        var targetProperty = TargetScript.GetType().GetProperty(listName, flags);
+        if (targetProperty != null && targetProperty.CanRead
+            && typeof(List<string>).IsAssignableFrom(targetProperty.PropertyType))
+            return targetProperty.GetValue(TargetScript) as List<string>;
+
+        return null;
+    }
+
     protected void RaiseEventValueChanged(string property)
     {
         if (!this.enabled)
@@ -682,7 +719,7 @@ public class Controllable : MonoBehaviour
         return Mathf.Clamp(value, range.min, range.max);
     }
 
-    public void setFieldProp(FieldInfo info, List<object> values, bool isEnum = false)
+    public void setFieldProp(FieldInfo info, List<object> values)
     {
         OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
 
@@ -692,25 +729,23 @@ public class Controllable : MonoBehaviour
         string typeString = info.FieldType.ToString();
 
         if(debug)
-            Debug.Log("Setting attribut " + info.Name + " of type " + typeString + " (enum?"+ isEnum + ") with " + values.Count + " value(s)");
+            Debug.Log("Setting attribut " + info.Name + " of type " + typeString + " with " + values.Count + " value(s)");
 
         // if we detect any attribute print out the data.
 
-        if (isEnum)
+        //An enum is dispatched on the field's Type rather than on its name, so the members and their
+        //declared values come from the FieldInfo itself - a name, an underlying value or the member
+        //all resolve, and nothing has to be told which assembly the type lives in.
+        if (info.FieldType.IsEnum)
         {
             if (values.Count >= 1)
             {
-                var enumType = Type.GetType(typeString);
-                if (enumType == null)
-                {
-                    Debug.LogWarning("[OCF] Could not resolve enum type '" + typeString + "' for " + info.Name + " (move the enum out of a Plugins folder or qualify its assembly).");
-                }
+                if (TypeConverter.TryGetEnumValue(info.FieldType, values[0], out var enumValue))
+                    info.SetValue(this, enumValue);
                 else
-                {
-                    var enumIndex = TypeConverter.getIndexInEnum(Enum.GetNames(enumType).ToList(), (string)values[0]);
-                    if (enumIndex >= 0)
-                        info.SetValue(this, enumIndex);
-                }
+                    Debug.LogWarning("[OCF] " + values[0] + " is not a value of " + info.FieldType.Name
+                        + " for '" + info.Name + "'. Expected one of: "
+                        + TypeConverter.DescribeEnumValues(info.FieldType) + ".");
             }
         }
         else
@@ -975,17 +1010,26 @@ public class Controllable : MonoBehaviour
             if (Fields.TryGetValue(dn, out info))
             {
                 List<object> values = new List<object>();
-                var convertedObject = TypeConverter.getObjectForValue(Fields[dn].FieldType.ToString(), data.valueList[index]);
 
-                if (convertedObject == null) //Might be an enum
+                //An enum is routed on the field's Type before the string-keyed converter is asked:
+                //saveData writes the member name, and setFieldProp resolves it from the FieldInfo.
+                if (info.FieldType.IsEnum)
                 {
                     values.Add(data.valueList[index]);
-                    setFieldProp(Fields[dn], values, true);
+                    setFieldProp(Fields[dn], values);
                 }
                 else
                 {
-                    values.Add(convertedObject);
-                    setFieldProp(Fields[dn], values);
+                    var convertedObject = TypeConverter.getObjectForValue(info.FieldType.ToString(), data.valueList[index]);
+
+                    if (convertedObject == null)
+                        Debug.LogWarning("[OCF] " + GetType().Name + ": cannot restore '" + dn
+                            + "' from a preset - " + info.FieldType + " is not a supported type.");
+                    else
+                    {
+                        values.Add(convertedObject);
+                        setFieldProp(Fields[dn], values);
+                    }
                 }
             }
 

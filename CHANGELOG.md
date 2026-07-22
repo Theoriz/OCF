@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- `[OSCExposed]` now exposes enums, so an enum field reaches the generated mirror and the UI with no hand editing.
+- `[OSCExposed(targetList = "myList")]` names a `List<string>` on the same script whose entries the member is chosen from, the automatic-workflow equivalent of `[OSCProperty(targetList = ...)]`.
+- `Controllable.GetTargetList(string)` resolves a `targetList` name against the mirror first and the target script second.
+- `TypeConverter.TryGetEnumValue`, which resolves a member name, an underlying value or a member to a value of a given enum type.
+
+### Changed
+
+- Enums are set over OSC by member name, case-insensitively, or by underlying value.
+- Enums store the member's declared value rather than its position in the member list.
+- A value naming no member of the enum logs a warning listing the valid names.
+- **Breaking:** `setFieldProp` no longer takes an `isEnum` parameter; callers passing it must drop the argument.
+- **Breaking:** `[OSCProperty(enumName = "...")]` is removed; declare the field with its real enum type instead.
+- Restoring a preset member whose type OCF does not support logs a warning.
+- `Generate Controllable Script` refuses a `targetList` that names no public `List<string>` on the target script.
+
 ## [1.5.3] - 2026-07-22
 
 ### Fixed

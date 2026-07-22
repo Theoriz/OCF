@@ -8,7 +8,6 @@ public class OSCMetadata : Attribute
 public class OSCProperty : OSCMetadata
 {
     public string targetList;
-    public string enumName = "";
     public bool includeInPresets = true;
     public bool showInUI = true;
     public bool readOnly = false;
@@ -24,4 +23,9 @@ public class OSCMethod : OSCMetadata
 public class OSCExposed : Attribute
 {
     public bool readOnly = false;
+
+    //Name of a List<string> on the same script whose entries this member is chosen from. The
+    //generator forwards it to [OSCProperty(targetList = ...)] on the mirror, and the list is read
+    //back off the target script at runtime, so a generated mirror needs no list of its own.
+    public string targetList = "";
 }

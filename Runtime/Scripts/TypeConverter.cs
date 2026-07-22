@@ -5,6 +5,85 @@ using System;
 
 public static class TypeConverter {
 
+    #region Enums
+
+    /// <summary>
+    /// Resolves <paramref name="value"/> - a member name, an underlying numeric value, or an already
+    /// boxed member - to a value of <paramref name="enumType"/>.
+    /// </summary>
+    /// <remarks>
+    /// The type is taken from the FieldInfo of the member being written, so nothing here parses a
+    /// type name and no assembly qualification is involved. Names go through Enum.Parse, which also
+    /// accepts the comma list a [Flags] value writes itself as; numbers go through Enum.ToObject, so
+    /// byte- and long-backed enums work without an int cast. A number that names no member is
+    /// refused rather than stored, unless the type is [Flags] and combinations are meaningful.
+    /// </remarks>
+    public static bool TryGetEnumValue(Type enumType, object value, out object result)
+    {
+        result = null;
+
+        if (enumType == null || !enumType.IsEnum || value == null)
+            return false;
+
+        //The UI and the undo stack both send the member itself, already boxed.
+        if (enumType.IsInstanceOfType(value))
+        {
+            result = value;
+            return true;
+        }
+
+        if (value is string text)
+        {
+            text = text.Trim();
+            if (text.Length == 0)
+                return false;
+
+            object parsed;
+            try { parsed = Enum.Parse(enumType, text, true); }
+            catch (ArgumentException) { return false; }
+            catch (OverflowException) { return false; }
+
+            //Enum.Parse also accepts a number written as text, which can name no member at all; that
+            //is refused here on the same terms as a number arriving as a number.
+            if (!IsFlags(enumType) && !Enum.IsDefined(enumType, parsed))
+                return false;
+
+            result = parsed;
+            return true;
+        }
+
+        //OSC delivers numbers as int or float; Convert covers the rest of the numeric boxes for free.
+        if (value is IConvertible && !(value is bool) && !(value is char))
+        {
+            long numeric;
+            try { numeric = Convert.ToInt64(value, System.Globalization.CultureInfo.InvariantCulture); }
+            catch (Exception) { return false; }
+
+            var candidate = Enum.ToObject(enumType, numeric);
+            if (!IsFlags(enumType) && !Enum.IsDefined(enumType, candidate))
+                return false;
+
+            result = candidate;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether combinations of this enum's members are meaningful.</summary>
+    public static bool IsFlags(Type enumType)
+    {
+        return enumType != null && enumType.IsDefined(typeof(FlagsAttribute), false);
+    }
+
+    /// <summary>The member names of <paramref name="enumType"/>, joined for a message.</summary>
+    public static string DescribeEnumValues(Type enumType)
+    {
+        return enumType == null || !enumType.IsEnum ? "" : string.Join(", ", Enum.GetNames(enumType));
+    }
+
+    #endregion
+
     #region Scalars
 
     public static int getIndexInEnum(List<string> enumValueList, string selectedElement)

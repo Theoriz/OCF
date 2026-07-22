@@ -48,13 +48,17 @@ public class MyScript : MonoBehaviour
     [OSCExposed] public float speed = 1f;
     [OSCExposed, Range(0f, 1f)] public float amount = 0.5f;
     [OSCExposed(readOnly = true)] public string status = "idle";
+    [OSCExposed] public LightMode mode = LightMode.Spot;
+
+    public List<string> palettes = new List<string> { "warm", "cool" };
+    [OSCExposed(targetList = "palettes")] public string palette = "warm";
 
     [OSCExposed]
     public void Randomize() { /* ... */ }
 }
 ```
 
-`readOnly` is the only option `[OSCExposed]` takes.
+`[OSCExposed]` takes two options: `readOnly`, and `targetList` for a member chosen from a list — see *Exposing a list*. An enum needs neither, since its type already names its members (*Exposing an enum*).
 
 Then generate the Controllable, either way round:
 
@@ -104,10 +108,10 @@ The mirror re-declares each exposed member with `[OSCProperty]` (fields) or `[OS
 
 Values flow both ways: incoming OSC and UI edits are written through to your script, and `Controllable.Update` polls your script for changes made in code.
 
-That poll runs every frame. `PollTargetScript` is what does it, and the generated override above compares the mirror against your script directly — no reflection and no allocation. The base implementation it replaces reads every exposed member through reflection, which boxes every `float`, `int`, `bool`, `Vector` and `Color` once per frame whether or not it changed.
+That poll runs every frame, in `PollTargetScript`. The generated override above compares the mirror against your script directly — no reflection and no allocation. A mirror without that override falls back to `Controllable`'s implementation, which reads every exposed member through reflection and boxes every `float`, `int`, `bool`, `Vector` and `Color` once per frame whether or not it changed.
 
 > [!TIP]
-> Mirrors generated before this existed keep working, but keep paying that cost. Regenerate them — right-click the component and choose **Update Controllable** — to pick up the typed poll.
+> To give a mirror the typed override, right-click the component and choose **Update Controllable**.
 
 You can also write a mirror by hand instead of generating it, which is what the extra `[OSCProperty]` options below need. A hand-written mirror runs the reflection poll unless you override `PollTargetScript` yourself, following the shape above.
 
@@ -118,10 +122,9 @@ You can also write a mirror by hand instead of generating it, which is what the 
 | `readOnly` | bool | `false` | Value is displayed but cannot be edited. |
 | `showInUI` | bool | `true` | Set `false` to control the member over OSC only, with no widget. |
 | `includeInPresets` | bool | `true` | Set `false` to leave the member out of saved presets. |
-| `targetList` | string | — | Name of a `List<string>` field on the mirror; renders a dropdown whose selection is written to this member. See *Exposing a list*. |
-| `enumName` | string | — | Type name of an enum; renders a dropdown of its values. See *Exposing an enum*. |
+| `targetList` | string | — | Name of a `List<string>` whose entries this member is chosen from; renders a dropdown. See *Exposing a list*. |
 
-`readOnly` is also reachable from the automatic workflow — write `[OSCExposed(readOnly = true)]` and the generator forwards it. The other four options have no `[OSCExposed]` equivalent, so a member that needs one must be declared in a hand-written mirror.
+`readOnly` and `targetList` are also reachable from the automatic workflow — write `[OSCExposed(readOnly = true)]` or `[OSCExposed(targetList = "myList")]` and the generator forwards them. `includeInPresets` and `showInUI` have no `[OSCExposed]` equivalent, so a member that needs one must be declared in a hand-written mirror.
 
 ### Reserved names
 
@@ -219,7 +222,21 @@ If the chosen folder cannot be created or written to, OCF logs one error naming 
 
 ## Exposing a list
 
-To pick a value from a list of strings, hand-write a mirror with a `List<string>` field and point a string member at it with `targetList`:
+To pick a value from a list of strings, keep the `List<string>` on your own script and point a string member at it by name:
+
+```C#
+public class MyScript : MonoBehaviour
+{
+    public List<string> options = new List<string> { "red", "green", "blue" };
+
+    [OSCExposed(targetList = "options")]
+    public string selected = "red";
+}
+```
+
+Generate the Controllable as usual. The dropdown writes the selected entry into `selected`, and the list is read live, so entries added at runtime appear the next time the dropdown refreshes.
+
+The list may also live on the mirror, which is what a hand-written one does — `targetList` is looked up on the mirror first and on your script second:
 
 ```C#
 public class MyScriptControllable : Controllable
@@ -231,14 +248,26 @@ public class MyScriptControllable : Controllable
 }
 ```
 
-The dropdown writes the selected entry into `selected`, which is mirrored to your script.
-
 ## Exposing an enum
 
+Declare the field with its real enum type and mark it `[OSCExposed]` — nothing else is needed, and the enum can live anywhere, including nested in another type or inside an assembly definition:
+
 ```C#
-[OSCProperty(enumName = "MyNamespace.MyEnum, Assembly-CSharp")]
-public string mode;
+public enum LightMode { None = 0, Spot = 5, Wash = 12 }
+
+[OSCExposed] public LightMode mode = LightMode.Spot;
 ```
 
-> [!WARNING]
-> `enumName` is resolved with `Type.GetType`, which only searches the calling assembly and the core library. A bare enum name will **not** be found and logs an error — pass an assembly-qualified name (`"Namespace.EnumType, AssemblyName"`). Scripts in a Unity project with no assembly definition are in `Assembly-CSharp`.
+The generated mirror declares the same enum type and the panel renders a dropdown of its members.
+
+Over OSC the member can be set either way:
+
+```
+/OCF/MyScript/mode "Wash"   ← member name, case-insensitive
+/OCF/MyScript/mode 12       ← the member's declared value
+```
+
+A value naming no member logs a warning listing the valid names and leaves the member alone. Presets store the member name.
+
+> [!NOTE]
+> A `[Flags]` enum has no widget: one dropdown cannot represent a combination of members. It is controllable over OSC — by combined value, or by the comma-separated form `"Red, Blue"` — and saved in presets.
