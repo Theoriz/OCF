@@ -24,10 +24,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - **Breaking:** `[OCFProperty(enumName = "...")]` is removed; declare the field with its real enum type instead.
 - Restoring a preset member whose type OCF does not support logs a warning.
 - `Generate Controllable Script` refuses a `targetList` that names no public `List<string>` on the target script.
+- `Add Controllable` no longer offers itself on a Controllable component, where it could only propose generating a `FooControllableControllable`.
+- `Add Controllable` on an object that already has its Controllable says so in the Console instead of doing nothing visible.
 - Read-only members are left out of preset files.
-- **Breaking:** Every field, event and `[OCFMethod]` on `Controllable` and `ControllableMasterControllable` now carries a `controllable` prefix; regenerate every mirror with `Update Controllable`, which will otherwise fail to compile.
+- **Breaking:** Every field, event and `[OCFMethod]` on `Controllable`, and the global preset and action methods on `ControllableMasterControllable`, now carry a `controllable` prefix; regenerate every mirror with `Update Controllable`, which will otherwise fail to compile.
 - **Breaking:** The built-in OSC addresses are renamed, so `/OCF/{id}/Save` becomes `/OCF/{id}/ControllableSave` and likewise for `SaveAs`, `Load`, `Show`, `LoadWithName`, `SaveAll`, `SaveAsAll`, `LoadAll`, `OpenPresetsFolder` and `currentPreset`.
 - **Breaking:** Every method starts with a capital letter, so `setProp`, `setFieldProp`, `setMethodProp`, `getData`, `loadData`, `getFieldInfoByName`, `getPropInfoForAddress`, `getMethodInfoForAddress` and the `TypeConverter.getFloat`, `getBool`, `getInt`, `getObjectForValue` and `getIndexInEnum` helpers are renamed; update callers.
+- **Breaking:** `controllableBarColor`, `controllableUsePanel` and `controllableClosePanelAtStart` move to GenUI's `GenUIPanelSettings` component and are not migrated, so set them again there.
 - `id`, `debug`, `Save`, `Load` and every other name the prefix freed can now be used for an `[OCFExposed]` member.
 - Scenes and prefabs saved before 2.0.0 migrate on load; open and re-save each one before 3.0.0, when the `[FormerlySerializedAs]` attributes are removed.
 

@@ -130,7 +130,7 @@ You can also write a mirror by hand instead of generating it, which is what the 
 
 A generated Controllable **inherits from `Controllable`**, so an `[OCFExposed]` member that reuses one of `Controllable`'s member names will *shadow* the real one and break it. Since 2.0.0 every member `Controllable` declares carries a `controllable` prefix, which keeps the framework's own names out of your way. Fields and events spell it lower case and methods spell it `Controllable`, following the capital-letter rule every method name obeys:
 
-- **Controllable state:** `controllableId`, `controllableDebug`, `controllableFolder`, `controllableTargetDirectory`, `controllableSourceScene`, `controllableUsePanel`, `controllableUsePresets`, `controllableClosePanelAtStart`, `controllableCurrentPreset`, `controllablePresetList`, `controllableBarColor`, `controllableTargetScript`
+- **Controllable state:** `controllableId`, `controllableDebug`, `controllableFolder`, `controllableTargetDirectory`, `controllableSourceScene`, `controllableUsePresets`, `controllableCurrentPreset`, `controllablePresetList`, `controllableTargetScript`
 - **Preset methods:** `ControllableSave`, `ControllableSaveAs`, `ControllableLoad`, `ControllableShow`, `ControllableLoadWithName`
 - **Events:** `controllableUiValueChanged`, `controllableValueChanged`, `controllableScriptValueChanged`
 - **From Unity:** `name`, `tag`, `transform`, `gameObject`, `enabled`

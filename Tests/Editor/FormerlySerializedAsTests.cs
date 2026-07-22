@@ -21,15 +21,12 @@ namespace Theoriz.OCF.Tests
         static readonly object[] RenamedFields =
         {
             new object[] { "controllableTargetScript",     "TargetScript" },
-            new object[] { "controllableBarColor",         "BarColor" },
             new object[] { "controllableId",               "id" },
             new object[] { "controllableDebug",            "debug" },
             new object[] { "controllableFolder",           "folder" },
             new object[] { "controllableTargetDirectory",  "targetDirectory" },
             new object[] { "controllableSourceScene",      "sourceScene" },
-            new object[] { "controllableUsePanel",         "usePanel" },
             new object[] { "controllableUsePresets",       "usePresets" },
-            new object[] { "controllableClosePanelAtStart","closePanelAtStart" },
             new object[] { "controllableCurrentPreset",    "currentPreset" },
             new object[] { "controllablePresetList",       "presetList" },
         };

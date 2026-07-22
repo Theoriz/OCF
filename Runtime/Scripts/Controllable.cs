@@ -102,9 +102,6 @@ public class Controllable : MonoBehaviour
     [FormerlySerializedAs("TargetScript")]
     public MonoBehaviour controllableTargetScript;
 
-    [FormerlySerializedAs("BarColor")]
-    public Color controllableBarColor = Color.white;
-
     [FormerlySerializedAs("id")]
     public string controllableId;
 
@@ -124,15 +121,8 @@ public class Controllable : MonoBehaviour
     public string controllableSourceScene;
 
     [HideInInspector]
-    [FormerlySerializedAs("usePanel")]
-    public bool controllableUsePanel = true;
-
-    [HideInInspector]
     [FormerlySerializedAs("usePresets")]
     public bool controllableUsePresets = true;
-
-    [FormerlySerializedAs("closePanelAtStart")]
-    public bool controllableClosePanelAtStart = true;
 
     [System.NonSerialized] public Dictionary<string, FieldInfo> controllableFields;
     [System.NonSerialized] public List<object> controllablePreviousFieldsValues;

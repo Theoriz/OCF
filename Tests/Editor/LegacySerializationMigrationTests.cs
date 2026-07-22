@@ -20,13 +20,6 @@ namespace Theoriz.OCF.Tests
         const string TestFolder = "Assets/__OCFLegacyMigrationTest__";
         const string PrefabPath = TestFolder + "/LegacyControllable.prefab";
 
-        /// <summary>
-        /// Every value here is deliberately *not* the field's default, so a passing assert can only
-        /// mean the value came out of the file. Were these left at the defaults, a migration that
-        /// silently dropped everything would still pass.
-        /// </summary>
-        static readonly Color LegacyBarColor = new Color(0.25f, 0.5f, 0.75f, 1f);
-
         static string ControllableScriptGuid()
         {
             var path = AssetDatabase.FindAssets("Controllable t:MonoScript")
@@ -38,8 +31,15 @@ namespace Theoriz.OCF.Tests
         }
 
         /// <summary>
-        /// A prefab holding one Controllable serialised with the 1.x field names. 'hasPresets' is
-        /// included even though 2.0.0 deletes it: an unknown key must be ignored on import, not throw.
+        /// A prefab holding one Controllable serialised with the 1.x field names. Every value is
+        /// deliberately *not* the field's default, so a passing assert can only mean the value came
+        /// out of the file; were they left at the defaults, a migration that silently dropped
+        /// everything would still pass.
+        ///
+        /// 'hasPresets', 'BarColor', 'usePanel' and 'closePanelAtStart' are included even though the
+        /// fields are gone in 2.0.0 - the first deleted, the last three moved to GenUI's
+        /// GenUIPanelSettings, which no attribute can migrate to. An unknown key must be ignored on
+        /// import, not throw.
         /// </summary>
         static string LegacyPrefabYaml(string scriptGuid)
         {
@@ -154,7 +154,6 @@ MonoBehaviour:
             Assert.AreEqual("/legacy/dir/", c.controllableTargetDirectory);
             Assert.AreEqual("LegacyScene", c.controllableSourceScene);
             Assert.AreEqual("legacy.pst", c.controllableCurrentPreset);
-            Assert.AreEqual(LegacyBarColor, c.controllableBarColor);
             CollectionAssert.AreEqual(new[] { "legacy.pst" }, c.controllablePresetList);
         }
 
@@ -169,10 +168,7 @@ MonoBehaviour:
             var c = LoadMigrated();
 
             Assert.IsTrue(c.controllableDebug, "debug was stored as true; the field defaults to false.");
-            Assert.IsFalse(c.controllableUsePanel, "usePanel was stored as false; the field defaults to true.");
             Assert.IsFalse(c.controllableUsePresets, "usePresets was stored as false; the field defaults to true.");
-            Assert.IsFalse(c.controllableClosePanelAtStart,
-                "closePanelAtStart was stored as false; the field defaults to true.");
         }
     }
 }

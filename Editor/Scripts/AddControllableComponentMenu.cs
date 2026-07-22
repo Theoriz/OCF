@@ -13,6 +13,11 @@ public class AddControllableComponentMenu : Editor
         if (sourceComponent == null)
             return false;
 
+        //A Controllable is the mirror, never the script being mirrored: offering the entry here only
+        //leads to being asked to generate a FooControllableControllable.
+        if (sourceComponent is Controllable)
+            return false;
+
         // Get the MonoScript associated with the component's type
         MonoScript monoScript = MonoScript.FromMonoBehaviour(sourceComponent as MonoBehaviour);
 
@@ -153,9 +158,15 @@ public class AddControllableComponentMenu : Editor
             return;
         }
 
-        //The user may have added it by hand while waiting for the compile.
+        //Already there - added by hand while waiting for the compile, or the menu clicked twice. Said
+        //out loud on the interactive path, where the click would otherwise appear to do nothing.
         if (go.GetComponent(controllableType) != null)
+        {
+            if (interactive)
+                Debug.Log($"'{go.name}' already has {controllableType.Name}.");
+
             return;
+        }
 
         AddControllableComponent(go, controllableType, sourceComponent, sourceType);
     }
@@ -183,7 +194,6 @@ public class AddControllableComponentMenu : Editor
         // Initialize added controllable
         Controllable addedControllable = addedComponent as Controllable;
         addedControllable.controllableTargetScript = sourceComponent as MonoBehaviour;
-        addedControllable.controllableBarColor = UnityEngine.Random.ColorHSV(0, 1, .6f, 1, 1, 1, 1, 1);
         addedControllable.controllableId = sourceType.Name;
     }
 
