@@ -24,6 +24,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Generate Controllable Script` refuses a `targetList` that names no public `List<string>` on the target script.
 - Read-only members are left out of preset files.
 
+### Fixed
+
+- Disabling or destroying a `ControllableMaster` that has no `OSCReceiverName` no longer throws out of `OnDisable`.
+- A `ControllableMaster` with no `OSCReceiverName` logs one warning and does not retry the OSC port.
+
 ## [1.5.3] - 2026-07-22
 
 ### Fixed

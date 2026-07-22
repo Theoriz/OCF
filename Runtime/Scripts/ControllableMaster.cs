@@ -23,6 +23,17 @@ public class ControllableMaster : MonoBehaviour
     public int maxConnectAttempts = 100;
     private int _connectAttempts;
 
+    //Every receiver is keyed by OSCReceiverName, which is serialized and so is empty on a
+    //ControllableMaster added from script. Keying a dictionary by it before it is set throws, and
+    //one of the callers is OnDisable - where an exception would also skip the Zeroconf teardown
+    //that follows it. Every lookup checks this first.
+    private bool HasReceiverName
+    {
+        get { return !string.IsNullOrEmpty(OSCReceiverName); }
+    }
+
+    private bool _missingReceiverNameReported;
+
     [Header("Status")]
     public bool IsConnected;
     public string IPAddress;
@@ -78,7 +89,9 @@ public class ControllableMaster : MonoBehaviour
 
     private void Update()
     {
-        if (!IsConnected && IncrementalConnect)
+        //Retrying is only about a busy port. With no receiver name there is nothing to retry, and
+        //walking the port up to maxConnectAttempts would end in a message blaming the port.
+        if (!IsConnected && IncrementalConnect && HasReceiverName)
         {
             if (_connectAttempts < maxConnectAttempts)
             {
@@ -97,11 +110,7 @@ public class ControllableMaster : MonoBehaviour
 
     private void OnDisable() {
 
-        if (OSCMaster.HasReceiver(OSCReceiverName))
-        {
-            OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
-            OSCMaster.RemoveReceiver(OSCReceiverName);
-        }
+        RemoveOSCReceiver();
 
         CloseZeroconfService();
     }
@@ -293,14 +302,30 @@ public class ControllableMaster : MonoBehaviour
     }
 
 
+    private void RemoveOSCReceiver()
+    {
+        if (!HasReceiverName || !OSCMaster.HasReceiver(OSCReceiverName))
+            return;
+
+        OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
+        OSCMaster.RemoveReceiver(OSCReceiverName);
+    }
+
     private void Connect() {
         IsConnected = false;
 
-        if (OSCMaster.HasReceiver(OSCReceiverName))
+        if (!HasReceiverName)
         {
-            OSCMaster.Receivers[OSCReceiverName].messageReceived -= processMessage;
-            OSCMaster.RemoveReceiver(OSCReceiverName);
+            //Reported once: the OSCInputPort setter also comes through here.
+            if (!_missingReceiverNameReported)
+            {
+                Debug.LogWarning("[OCF] ControllableMaster has no OSCReceiverName, so no OSC input is opened.");
+                _missingReceiverNameReported = true;
+            }
+            return;
         }
+
+        RemoveOSCReceiver();
 
 		OSCMaster.CreateReceiver(OSCReceiverName, OSCInputPort);
 
