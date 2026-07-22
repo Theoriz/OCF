@@ -8,7 +8,7 @@ namespace Theoriz.OCF.Tests
 {
     /// <summary>
     /// Target script declaring a method whose name collides with one of Controllable's own
-    /// [OSCMethod] members. ControllableLoadWithName is used rather than ControllableSave because it
+    /// [OCFMethod] members. ControllableLoadWithName is used rather than ControllableSave because it
     /// is not gated by controllableUsePresets, so the fixture can keep presets off and avoid
     /// filesystem I/O.
     /// </summary>
@@ -30,7 +30,7 @@ namespace Theoriz.OCF.Tests
     /// <summary>Mirror whose method hides Controllable's built-in (identical signature).</summary>
     public class HidingMirror : Controllable
     {
-        [OSCMethod]
+        [OCFMethod]
         public new void ControllableLoadWithName(string fileName)
         {
         }
@@ -39,7 +39,7 @@ namespace Theoriz.OCF.Tests
     /// <summary>Mirror whose method overloads Controllable's built-in (different signature).</summary>
     public class OverloadingMirror : Controllable
     {
-        [OSCMethod]
+        [OCFMethod]
         public void ControllableLoadWithName(int slot)
         {
         }

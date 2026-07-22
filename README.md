@@ -40,25 +40,25 @@ https://github.com/Theoriz/OCF.git
 
 ## Exposing members
 
-Mark the members you want to control with `[OSCExposed]`:
+Mark the members you want to control with `[OCFExposed]`:
 
 ```C#
 public class MyScript : MonoBehaviour
 {
-    [OSCExposed] public float speed = 1f;
-    [OSCExposed, Range(0f, 1f)] public float amount = 0.5f;
-    [OSCExposed(readOnly = true)] public string status = "idle";
-    [OSCExposed] public LightMode mode = LightMode.Spot;
+    [OCFExposed] public float speed = 1f;
+    [OCFExposed, Range(0f, 1f)] public float amount = 0.5f;
+    [OCFExposed(readOnly = true)] public string status = "idle";
+    [OCFExposed] public LightMode mode = LightMode.Spot;
 
     public List<string> palettes = new List<string> { "warm", "cool" };
-    [OSCExposed(targetList = "palettes")] public string palette = "warm";
+    [OCFExposed(targetList = "palettes")] public string palette = "warm";
 
-    [OSCExposed]
+    [OCFExposed]
     public void Randomize() { /* ... */ }
 }
 ```
 
-`[OSCExposed]` takes two options: `readOnly`, and `targetList` for a member chosen from a list — see *Exposing a list*. An enum needs neither, since its type already names its members (*Exposing an enum*).
+`[OCFExposed]` takes two options: `readOnly`, and `targetList` for a member chosen from a list — see *Exposing a list*. An enum needs neither, since its type already names its members (*Exposing an enum*).
 
 Then generate the Controllable, either way round:
 
@@ -72,17 +72,17 @@ The generator emits a *mirror* class next to your script:
 ```C#
 public class MyScriptControllable : Controllable
 {
-    [OSCProperty]
+    [OCFProperty]
     public float speed;
 
     [Range(0f, 1f)]
-    [OSCProperty]
+    [OCFProperty]
     public float amount;
 
-    [OSCProperty(readOnly = true)]
+    [OCFProperty(readOnly = true)]
     public string status;
 
-    [OSCMethod]
+    [OCFMethod]
     public void Randomize()
     {
         (controllableTargetScript as MyScript).Randomize();
@@ -101,7 +101,7 @@ public class MyScriptControllable : Controllable
 
 `[Header]`, `[Range]` and `[Tooltip]` are carried over from your script and honoured by the UI.
 
-The mirror re-declares each exposed member with `[OSCProperty]` (fields) or `[OSCMethod]` (methods), and `Controllable` binds the two **by name** at `Awake`.
+The mirror re-declares each exposed member with `[OCFProperty]` (fields) or `[OCFMethod]` (methods), and `Controllable` binds the two **by name** at `Awake`.
 
 > [!IMPORTANT]
 > The names must match exactly. A mismatch fails silently — the member simply is not controllable.
@@ -113,9 +113,9 @@ That poll runs every frame, in `PollTargetScript`. The generated override above 
 > [!TIP]
 > To give a mirror the typed override, right-click the component and choose **Update Controllable**.
 
-You can also write a mirror by hand instead of generating it, which is what the extra `[OSCProperty]` options below need. A hand-written mirror runs the reflection poll unless you override `PollTargetScript` yourself, following the shape above.
+You can also write a mirror by hand instead of generating it, which is what the extra `[OCFProperty]` options below need. A hand-written mirror runs the reflection poll unless you override `PollTargetScript` yourself, following the shape above.
 
-### `[OSCProperty]` options
+### `[OCFProperty]` options
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
@@ -124,11 +124,11 @@ You can also write a mirror by hand instead of generating it, which is what the 
 | `includeInPresets` | bool | `true` | Set `false` to leave the member out of saved presets. |
 | `targetList` | string | — | Name of a `List<string>` whose entries this member is chosen from; renders a dropdown. See *Exposing a list*. |
 
-`readOnly` and `targetList` are also reachable from the automatic workflow — write `[OSCExposed(readOnly = true)]` or `[OSCExposed(targetList = "myList")]` and the generator forwards them. `includeInPresets` and `showInUI` have no `[OSCExposed]` equivalent, so a member that needs one must be declared in a hand-written mirror.
+`readOnly` and `targetList` are also reachable from the automatic workflow — write `[OCFExposed(readOnly = true)]` or `[OCFExposed(targetList = "myList")]` and the generator forwards them. `includeInPresets` and `showInUI` have no `[OCFExposed]` equivalent, so a member that needs one must be declared in a hand-written mirror.
 
 ### Reserved names
 
-A generated Controllable **inherits from `Controllable`**, so an `[OSCExposed]` member that reuses one of `Controllable`'s member names will *shadow* the real one and break it. Since 2.0.0 every member `Controllable` declares carries a `controllable` prefix, which keeps the framework's own names out of your way. Fields and events spell it lower case and methods spell it `Controllable`, following the capital-letter rule every method name obeys:
+A generated Controllable **inherits from `Controllable`**, so an `[OCFExposed]` member that reuses one of `Controllable`'s member names will *shadow* the real one and break it. Since 2.0.0 every member `Controllable` declares carries a `controllable` prefix, which keeps the framework's own names out of your way. Fields and events spell it lower case and methods spell it `Controllable`, following the capital-letter rule every method name obeys:
 
 - **Controllable state:** `controllableId`, `controllableDebug`, `controllableFolder`, `controllableTargetDirectory`, `controllableSourceScene`, `controllableUsePanel`, `controllableUsePresets`, `controllableClosePanelAtStart`, `controllableCurrentPreset`, `controllablePresetList`, `controllableBarColor`, `controllableTargetScript`
 - **Preset methods:** `ControllableSave`, `ControllableSaveAs`, `ControllableLoad`, `ControllableShow`, `ControllableLoadWithName`
@@ -162,7 +162,7 @@ OSCMaster.Receivers["myReceiver"].messageReceived += (OSCMessage m) => Debug.Log
 
 ## Presets
 
-`Controllable` can save and restore the state of its `[OSCProperty]` members to a file. Members marked `readOnly` or `includeInPresets = false` are left out. The generated panel exposes **Save**, **Save As**, **Load** and **Show** buttons plus a preset dropdown, and the same methods are reachable over OSC.
+`Controllable` can save and restore the state of its `[OCFProperty]` members to a file. Members marked `readOnly` or `includeInPresets = false` are left out. The generated panel exposes **Save**, **Save As**, **Load** and **Show** buttons plus a preset dropdown, and the same methods are reachable over OSC.
 
 The ControllableMaster panel carries the global buttons instead: **Save All**, **Save As All**, **Load All** and **Open Presets Folder**. The last one reveals the presets root in your file browser, works whether or not any preset has been saved, and is also on the `ControllableMaster` component in the Inspector so you can reach the folder without entering Play mode.
 
@@ -173,7 +173,7 @@ The ControllableMaster panel carries the global buttons instead: **Save All**, *
 > [!NOTE]
 > **Show** reveals a single preset file and does nothing while no preset is selected. **Open Presets Folder** always opens the folder.
 
-**Selecting a preset loads it.** Setting `controllableCurrentPreset` — from the dropdown or over OSC (`/OCF/{id}/controllableCurrentPreset "myPreset.pst"`) — loads that preset immediately. **Load** reloads the current preset, and **Load All** does it for every controllable. Any `[OSCMethod]` can set `showInUI = false` to stay OSC-callable without a UI button.
+**Selecting a preset loads it.** Setting `controllableCurrentPreset` — from the dropdown or over OSC (`/OCF/{id}/controllableCurrentPreset "myPreset.pst"`) — loads that preset immediately. **Load** reloads the current preset, and **Load All** does it for every controllable. Any `[OCFMethod]` can set `showInUI = false` to stay OSC-callable without a UI button.
 
 To load a specific file, use the `ControllableLoadWithName` method:
 
@@ -185,7 +185,7 @@ To load a specific file, use the `ControllableLoadWithName` method:
 |---|---|---|
 | `fileName` | string | Case-sensitive file name. |
 
-To keep a member out of saved presets, set `includeInPresets = false` on its `[OSCProperty]`.
+To keep a member out of saved presets, set `includeInPresets = false` on its `[OCFProperty]`.
 
 The last-used preset is remembered across runs: on enable, `Controllable` reloads whichever preset was active when it was last disabled. This selection is stored in a plain-text file, `_lastUsedPreset.txt`, sitting alongside the `.pst` presets in the preset folder — it holds just the preset name and is not itself a preset.
 
@@ -224,7 +224,7 @@ public class MyScript : MonoBehaviour
 {
     public List<string> options = new List<string> { "red", "green", "blue" };
 
-    [OSCExposed(targetList = "options")]
+    [OCFExposed(targetList = "options")]
     public string selected = "red";
 }
 ```
@@ -238,19 +238,19 @@ public class MyScriptControllable : Controllable
 {
     public List<string> options = new List<string> { "red", "green", "blue" };
 
-    [OSCProperty(targetList = "options")]
+    [OCFProperty(targetList = "options")]
     public string selected;
 }
 ```
 
 ## Exposing an enum
 
-Declare the field with its real enum type and mark it `[OSCExposed]` — nothing else is needed, and the enum can live anywhere, including nested in another type or inside an assembly definition:
+Declare the field with its real enum type and mark it `[OCFExposed]` — nothing else is needed, and the enum can live anywhere, including nested in another type or inside an assembly definition:
 
 ```C#
 public enum LightMode { None = 0, Spot = 5, Wash = 12 }
 
-[OSCExposed] public LightMode mode = LightMode.Spot;
+[OCFExposed] public LightMode mode = LightMode.Spot;
 ```
 
 The generated mirror declares the same enum type and the panel renders a dropdown of its members.

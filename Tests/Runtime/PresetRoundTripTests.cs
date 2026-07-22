@@ -39,25 +39,25 @@ namespace Theoriz.OCF.Tests
     /// </summary>
     public class AllTypesControllable : Controllable
     {
-        [OSCProperty] public bool boolValue;
-        [OSCProperty] public int intValue;
-        [OSCProperty] public float floatValue;
+        [OCFProperty] public bool boolValue;
+        [OCFProperty] public int intValue;
+        [OCFProperty] public float floatValue;
         //Qualified: NUnit declares a RangeAttribute of its own, so a bare [Range] is ambiguous here.
-        [OSCProperty, UnityEngine.Range(0f, 1f)] public float rangedValue;
-        [OSCProperty] public string stringValue;
-        [OSCProperty] public Vector2 vector2Value;
-        [OSCProperty] public Vector2Int vector2IntValue;
-        [OSCProperty] public Vector3 vector3Value;
-        [OSCProperty] public Vector3Int vector3IntValue;
-        [OSCProperty] public Vector4 vector4Value;
-        [OSCProperty] public Color colorValue;
-        [OSCProperty] public AllTypesTarget.Mode mode;
+        [OCFProperty, UnityEngine.Range(0f, 1f)] public float rangedValue;
+        [OCFProperty] public string stringValue;
+        [OCFProperty] public Vector2 vector2Value;
+        [OCFProperty] public Vector2Int vector2IntValue;
+        [OCFProperty] public Vector3 vector3Value;
+        [OCFProperty] public Vector3Int vector3IntValue;
+        [OCFProperty] public Vector4 vector4Value;
+        [OCFProperty] public Color colorValue;
+        [OCFProperty] public AllTypesTarget.Mode mode;
 
-        [OSCProperty(targetList = "options")] public string selected;
+        [OCFProperty(targetList = "options")] public string selected;
 
-        [OSCProperty(includeInPresets = false)] public float notInPresets;
+        [OCFProperty(includeInPresets = false)] public float notInPresets;
 
-        [OSCProperty(readOnly = true)] public float readOnlyValue;
+        [OCFProperty(readOnly = true)] public float readOnlyValue;
     }
 
     /// <summary>

@@ -9,7 +9,7 @@ using UnityEngine;
 public class ControllableMasterEditor : Editor
 {
     //Reported by the OSC connection rather than set by hand, so these are drawn disabled - the panel
-    //already exposes both as [OSCProperty(readOnly = true)], and Start overwrites IPAddress anyway.
+    //already exposes both as [OCFProperty(readOnly = true)], and Start overwrites IPAddress anyway.
     static readonly string[] ReadOnlyFields =
     {
         nameof(ControllableMaster.IsConnected),

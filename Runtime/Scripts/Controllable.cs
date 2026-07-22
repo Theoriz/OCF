@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Reflection;
 using System;
@@ -159,7 +159,7 @@ public class Controllable : MonoBehaviour
     public event ScriptValueChangedEvent controllableScriptValueChanged;
     [HideInInspector]
     [FormerlySerializedAs("currentPreset")]
-    [OSCProperty(targetList = "controllablePresetList", includeInPresets = false)] public string controllableCurrentPreset;
+    [OCFProperty(targetList = "controllablePresetList", includeInPresets = false)] public string controllableCurrentPreset;
     [HideInInspector]
     [FormerlySerializedAs("presetList")]
     public List<string> controllablePresetList;
@@ -196,7 +196,7 @@ public class Controllable : MonoBehaviour
         {
             FieldInfo info = objectFields[i];
             
-            OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
+            OCFProperty attribute = Attribute.GetCustomAttribute(info, typeof(OCFProperty)) as OCFProperty;
             if (attribute != null)
             {
                 if (info.Name == "controllableCurrentPreset" && !controllableUsePresets) continue;
@@ -205,7 +205,7 @@ public class Controllable : MonoBehaviour
                 //exists on the derived class and Unity serializes it, while Controllable's own code
                 //keeps reading the base field. All that can be done is report it.
                 if (info.DeclaringType != typeof(Controllable) && _reservedMemberNames.Contains(info.Name))
-                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCProperty] '" + info.Name
+                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OCFProperty] '" + info.Name
                         + "' shadows a member Controllable already declares. The real member is now "
                         + "unreachable and may misbehave - rename it.");
 
@@ -257,7 +257,7 @@ public class Controllable : MonoBehaviour
                 //     controllablePreviousFieldsValues.Add(controllableTargetFields[addedFieldName].GetValue(this));
 
                 if (!fieldAdded && !propertyAdded && info.Name != "controllableCurrentPreset")
-                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCProperty] '" + info.Name
+                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OCFProperty] '" + info.Name
                         + "' has no matching public field/property on target '"
                         + (controllableTargetScript != null ? controllableTargetScript.GetType().Name : "null")
                         + "'. It will not be controllable.");
@@ -273,13 +273,13 @@ public class Controllable : MonoBehaviour
         //METHODS
         controllableMethods = new Dictionary<string, ClassMethodInfo>();
 
-        //Controllable's own [OSCMethod] members are registered straight from typeof(Controllable) and
+        //Controllable's own [OCFMethod] members are registered straight from typeof(Controllable) and
         //never consult controllableTargetScript, so a target script's same-named method cannot displace them.
         //They are taken from the base type rather than from this.GetType()'s method list because a
         //derived class declaring the same signature hides the base method from GetMethods entirely.
         foreach (var builtIn in typeof(Controllable).GetMethods(BindingFlags.Instance | BindingFlags.Public))
         {
-            if (Attribute.GetCustomAttribute(builtIn, typeof(OSCMethod)) == null) continue;
+            if (Attribute.GetCustomAttribute(builtIn, typeof(OCFMethod)) == null) continue;
             if (Array.IndexOf(PresetMethodNames, builtIn.Name) >= 0 && !controllableUsePresets) continue;
 
             var builtInMethodInfo = new ClassMethodInfo();
@@ -294,14 +294,14 @@ public class Controllable : MonoBehaviour
         for (int i = 0; i < methodFields.Length; i++)
         {
             MethodInfo info = methodFields[i];
-            OSCMethod attribute = Attribute.GetCustomAttribute(info, typeof(OSCMethod)) as OSCMethod;
+            OCFMethod attribute = Attribute.GetCustomAttribute(info, typeof(OCFMethod)) as OCFMethod;
             if (attribute != null)
             {
                 //Already registered above, from the base type.
-                if (_builtInOSCMethodNames.Contains(info.Name))
+                if (_builtInOCFMethodNames.Contains(info.Name))
                 {
                     if (info.DeclaringType != typeof(Controllable))
-                        Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCMethod] '" + info.Name
+                        Debug.LogWarning("[OCF] " + GetType().Name + ": [OCFMethod] '" + info.Name
                             + "' reuses the name of a built-in Controllable method. It is ignored and "
                             + "the built-in is used instead - rename it if you want it exposed.");
                     continue;
@@ -309,7 +309,7 @@ public class Controllable : MonoBehaviour
 
                 if (controllableMethods.ContainsKey(info.Name))
                 {
-                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OSCMethod] '" + info.Name
+                    Debug.LogWarning("[OCF] " + GetType().Name + ": [OCFMethod] '" + info.Name
                         + "' is declared more than once (overloads share a single OSC address). "
                         + "Only the first is exposed - rename the others.");
                     continue;
@@ -471,11 +471,11 @@ public class Controllable : MonoBehaviour
 
     #region Reserved names
 
-    //Controllable's own [OSCMethod] members: the four preset methods plus LoadWithName. These are
+    //Controllable's own [OCFMethod] members: the four preset methods plus LoadWithName. These are
     //always bound to Controllable's implementation, never to a target script's same-named method.
-    static readonly HashSet<string> _builtInOSCMethodNames = new HashSet<string>(
+    static readonly HashSet<string> _builtInOCFMethodNames = new HashSet<string>(
         typeof(Controllable).GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .Where(m => Attribute.GetCustomAttribute(m, typeof(OSCMethod)) != null)
+            .Where(m => Attribute.GetCustomAttribute(m, typeof(OCFMethod)) != null)
             .Select(m => m.Name));
 
     //Every public member Controllable exposes, including those inherited from MonoBehaviour (name,
@@ -486,7 +486,7 @@ public class Controllable : MonoBehaviour
 
     /// <summary>
     /// True if <paramref name="name"/> is the name of a member Controllable already exposes.
-    /// An [OSCExposed] member must not reuse one: the generated mirror would declare a member of the
+    /// An [OCFExposed] member must not reuse one: the generated mirror would declare a member of the
     /// same name, shadowing the real one and breaking it silently.
     /// </summary>
     public static bool IsReservedMemberName(string name)
@@ -548,7 +548,7 @@ public class Controllable : MonoBehaviour
     public static readonly string[] PresetMethodNames =
         { "ControllableSave", "ControllableSaveAs", "ControllableLoad", "ControllableShow" };
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableSave()
     {
         if (string.IsNullOrEmpty(controllableCurrentPreset))
@@ -560,7 +560,7 @@ public class Controllable : MonoBehaviour
         ControllableSave(controllableCurrentPreset);
     }
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableSaveAs()
     {
 
@@ -593,13 +593,13 @@ public class Controllable : MonoBehaviour
         ReadFileList();
     }
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableLoad()
     {
         ControllableLoadWithName(controllableCurrentPreset);
     }
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableShow() //Show preset file in explorer
     {
         if (string.IsNullOrEmpty(controllableCurrentPreset)) return;
@@ -614,7 +614,7 @@ public class Controllable : MonoBehaviour
 #endif
     }
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableLoadWithName(string fileName)
     {
         if (!fileName.EndsWith(".pst"))
@@ -664,7 +664,7 @@ public class Controllable : MonoBehaviour
     }
 
     /// <summary>
-    /// The live <c>List&lt;string&gt;</c> an <c>[OSCProperty(targetList = "...")]</c> name refers to,
+    /// The live <c>List&lt;string&gt;</c> an <c>[OCFProperty(targetList = "...")]</c> name refers to,
     /// or null when the name resolves to nothing usable.
     /// </summary>
     /// <remarks>
@@ -739,7 +739,7 @@ public class Controllable : MonoBehaviour
 
     public void SetFieldProp(FieldInfo info, List<object> values)
     {
-        OSCProperty attribute = Attribute.GetCustomAttribute(info, typeof(OSCProperty)) as OSCProperty;
+        OCFProperty attribute = Attribute.GetCustomAttribute(info, typeof(OCFProperty)) as OCFProperty;
 
         if (attribute.readOnly == true)
             return;
@@ -975,7 +975,7 @@ public class Controllable : MonoBehaviour
 
         foreach (FieldInfo p in controllableFields.Values)
         {
-            OSCProperty attribute = Attribute.GetCustomAttribute(p, typeof(OSCProperty)) as OSCProperty;
+            OCFProperty attribute = Attribute.GetCustomAttribute(p, typeof(OCFProperty)) as OCFProperty;
 
             //A read-only member is never restored - SetFieldProp refuses to write one - so recording
             //it would put a value in the file that no load can apply.

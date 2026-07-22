@@ -13,12 +13,12 @@ namespace Theoriz.OCF.Tests
     }
 
     /// <summary>
-    /// Hand-written mirror (what ControllableGenerator would emit): an [OSCProperty] field
+    /// Hand-written mirror (what ControllableGenerator would emit): an [OCFProperty] field
     /// whose name matches a public field on the controllableTargetScript.
     /// </summary>
     public class MirrorControllable : Controllable
     {
-        [OSCProperty] public float myValue;
+        [OCFProperty] public float myValue;
     }
 
     /// <summary>
@@ -28,7 +28,7 @@ namespace Theoriz.OCF.Tests
     /// </summary>
     public class TypedPollControllable : Controllable
     {
-        [OSCProperty] public float myValue;
+        [OCFProperty] public float myValue;
 
         public int pollCount;
 
@@ -53,10 +53,10 @@ namespace Theoriz.OCF.Tests
         public Vector4 vec;
     }
 
-    /// <summary>Mirror exposing a Vector4 [OSCProperty].</summary>
+    /// <summary>Mirror exposing a Vector4 [OCFProperty].</summary>
     public class Vector4MirrorControllable : Controllable
     {
-        [OSCProperty] public Vector4 vec;
+        [OCFProperty] public Vector4 vec;
     }
 
     /// <summary>
@@ -80,9 +80,9 @@ namespace Theoriz.OCF.Tests
     /// </summary>
     public class DropdownMirrorControllable : Controllable
     {
-        [OSCProperty] public DropdownMirrorTarget.LightMode lightMode;
+        [OCFProperty] public DropdownMirrorTarget.LightMode lightMode;
 
-        [OSCProperty(targetList = "palettes")] public string palette;
+        [OCFProperty(targetList = "palettes")] public string palette;
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ namespace Theoriz.OCF.Tests
     {
         public System.Collections.Generic.List<string> palettes = new System.Collections.Generic.List<string> { "mirror-a", "mirror-b" };
 
-        [OSCProperty(targetList = "palettes")] public string palette;
+        [OCFProperty(targetList = "palettes")] public string palette;
     }
 
     /// <summary>
@@ -179,7 +179,7 @@ namespace Theoriz.OCF.Tests
             ctrl.LoadData(data);
 
             Assert.AreEqual(expected, ctrl.vec,
-                "A Vector4 [OSCProperty] should survive a GetData/LoadData round-trip.");
+                "A Vector4 [OCFProperty] should survive a GetData/LoadData round-trip.");
 
             Object.Destroy(go);
             yield return null;
@@ -374,7 +374,7 @@ namespace Theoriz.OCF.Tests
             ctrl.LoadData(data);
 
             Assert.AreEqual(DropdownMirrorTarget.LightMode.Wash, ctrl.lightMode,
-                "An enum [OSCProperty] should survive a GetData/LoadData round-trip.");
+                "An enum [OCFProperty] should survive a GetData/LoadData round-trip.");
 
             Object.Destroy(go);
             yield return null;
@@ -382,7 +382,7 @@ namespace Theoriz.OCF.Tests
 
         /// <summary>
         /// A generated mirror declares no list of its own, so the entries have to come off the target
-        /// script. This is what lets [OSCExposed(targetList = ...)] work without hand editing.
+        /// script. This is what lets [OCFExposed(targetList = ...)] work without hand editing.
         /// </summary>
         [UnityTest]
         public IEnumerator GetTargetList_FindsAListOnTheTargetScript()

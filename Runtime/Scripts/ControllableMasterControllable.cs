@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,20 +7,20 @@ public class ControllableMasterControllable : Controllable {
 
     [Header("OSC Settings")]
 
-    [OSCProperty(readOnly = true)]
+    [OCFProperty(readOnly = true)]
     public string IPAddress;
-    [OSCProperty]
+    [OCFProperty]
     public int OSCInputPort;
 
     [Tooltip("If connect fails, increment port and retry.")]
-    [OSCProperty] public bool IncrementalConnect;
+    [OCFProperty] public bool IncrementalConnect;
 
-    [OSCProperty(readOnly = true)] public bool IsConnected;
+    [OCFProperty(readOnly = true)] public bool IsConnected;
 
 
     #region Mirror
 
-    [OSCMethod]
+    [OCFMethod]
     public void RefreshIP()
     {
         (controllableTargetScript as ControllableMaster).RefreshIP();
@@ -55,26 +55,26 @@ public class ControllableMasterControllable : Controllable {
 
     //On this class rather than Controllable so there is one global button instead of one per panel,
     //and so the name stays out of Controllable's reserved members - which would otherwise forbid it
-    //as an [OSCExposed] name in every user script.
-    [OSCMethod]
+    //as an [OCFExposed] name in every user script.
+    [OCFMethod]
     public void ControllableOpenPresetsFolder()
     {
         (controllableTargetScript as ControllableMaster).OpenPresetsFolder();
     }
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableSaveAll()
     {
         ControllableMaster.SaveAllPresets();
     }
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableSaveAsAll()
     {
         ControllableMaster.SaveAsAllPresets();
     }
 
-    [OSCMethod]
+    [OCFMethod]
     public void ControllableLoadAll()
     {
         ControllableMaster.LoadAllPresets();

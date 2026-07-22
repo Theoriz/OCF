@@ -11,15 +11,15 @@ namespace Theoriz.OCF.Tests.Editor
     ///
     /// Consumers (notably GenUI's UIMaster.CleanGeneratedUI) group the preset buttons by matching
     /// these constants against the reflected method name, and ControllableGenerator refuses
-    /// [OSCExposed] members whose name is reserved. A rename on one side and not the other would
+    /// [OCFExposed] members whose name is reserved. A rename on one side and not the other would
     /// break either silently at runtime, so these tests exist to fail loudly instead.
     /// </summary>
     public class PresetMethodNamesTests
     {
-        static string[] ParameterlessOSCMethodNames(Type type)
+        static string[] ParameterlessOCFMethodNames(Type type)
         {
             return type.GetMethods(BindingFlags.Instance | BindingFlags.Public)
-                .Where(m => Attribute.GetCustomAttribute(m, typeof(OSCMethod)) != null)
+                .Where(m => Attribute.GetCustomAttribute(m, typeof(OCFMethod)) != null)
                 .Where(m => m.GetParameters().Length == 0)
                 .Select(m => m.Name)
                 .ToArray();
@@ -28,26 +28,26 @@ namespace Theoriz.OCF.Tests.Editor
         [Test]
         public void PresetMethodNames_AllExist_OnControllable()
         {
-            var declared = ParameterlessOSCMethodNames(typeof(Controllable));
+            var declared = ParameterlessOCFMethodNames(typeof(Controllable));
 
             foreach (var name in Controllable.PresetMethodNames)
             {
                 Assert.Contains(name, declared,
                     "Controllable.PresetMethodNames lists '" + name +
-                    "', but no parameterless [OSCMethod] by that name exists on Controllable.");
+                    "', but no parameterless [OCFMethod] by that name exists on Controllable.");
             }
         }
 
         [Test]
         public void AllPresetMethodNames_AllExist_OnControllableMasterControllable()
         {
-            var declared = ParameterlessOSCMethodNames(typeof(ControllableMasterControllable));
+            var declared = ParameterlessOCFMethodNames(typeof(ControllableMasterControllable));
 
             foreach (var name in ControllableMasterControllable.AllPresetMethodNames)
             {
                 Assert.Contains(name, declared,
                     "ControllableMasterControllable.AllPresetMethodNames lists '" + name +
-                    "', but no parameterless [OSCMethod] by that name exists on that class.");
+                    "', but no parameterless [OCFMethod] by that name exists on that class.");
             }
         }
 
@@ -94,13 +94,13 @@ namespace Theoriz.OCF.Tests.Editor
         [Test]
         public void GlobalActionMethodNames_AllExist_OnControllableMasterControllable()
         {
-            var declared = ParameterlessOSCMethodNames(typeof(ControllableMasterControllable));
+            var declared = ParameterlessOCFMethodNames(typeof(ControllableMasterControllable));
 
             foreach (var name in ControllableMasterControllable.GlobalActionMethodNames)
             {
                 Assert.Contains(name, declared,
                     "ControllableMasterControllable.GlobalActionMethodNames lists '" + name +
-                    "', but no parameterless [OSCMethod] by that name exists on that class.");
+                    "', but no parameterless [OCFMethod] by that name exists on that class.");
             }
         }
 
@@ -124,9 +124,9 @@ namespace Theoriz.OCF.Tests.Editor
         public void IsReservedMemberName_CoversControllablesOwnMembers()
         {
             Assert.IsTrue(Controllable.IsReservedMemberName("ControllableSave"),
-                "ControllableSave is an [OSCMethod] on Controllable.");
+                "ControllableSave is an [OCFMethod] on Controllable.");
             Assert.IsTrue(Controllable.IsReservedMemberName("ControllableLoadWithName"),
-                "ControllableLoadWithName is an [OSCMethod] on Controllable that PresetMethodNames does not list.");
+                "ControllableLoadWithName is an [OCFMethod] on Controllable that PresetMethodNames does not list.");
             Assert.IsTrue(Controllable.IsReservedMemberName("controllableId"),
                 "controllableId is a public field on Controllable, and the key ControllableMaster registers under.");
             Assert.IsTrue(Controllable.IsReservedMemberName("controllableDebug"),
@@ -159,7 +159,7 @@ namespace Theoriz.OCF.Tests.Editor
 
         /// <summary>
         /// Controllable is a MonoBehaviour, so Unity's own members are shadowable too and must be
-        /// reserved: an [OSCExposed] field named 'name' would hide UnityEngine.Object.name.
+        /// reserved: an [OCFExposed] field named 'name' would hide UnityEngine.Object.name.
         /// </summary>
         [Test]
         public void IsReservedMemberName_CoversInheritedUnityMembers()
@@ -177,7 +177,7 @@ namespace Theoriz.OCF.Tests.Editor
         }
 
         /// <summary>
-        /// The three name sets nest: preset methods are built-in [OSCMethod]s, and every built-in is
+        /// The three name sets nest: preset methods are built-in [OCFMethod]s, and every built-in is
         /// a member Controllable declares. Pins them together so one can't drift from another.
         /// </summary>
         [Test]

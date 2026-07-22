@@ -74,8 +74,8 @@ public static class ControllableGenerator
                 return;
         }
 
-        // Extract OSCProperty fields & properties
-        string memberDeclarations = ExtractOSCExposedMembers(originalType);
+        // Extract OCFProperty fields & properties
+        string memberDeclarations = ExtractOCFExposedMembers(originalType);
 
         string scriptContent =
 $@"using UnityEngine;
@@ -113,11 +113,11 @@ public class {newName} : Controllable
         return null;
     }
 
-    private static string ExtractOSCExposedMembers(Type type)
+    private static string ExtractOCFExposedMembers(Type type)
     {
-        Type oscAttributeType = FindType("OSCExposed");
-        if (oscAttributeType == null)
-            return "    // ERROR: Could not find OSCExposed attribute.\r\n";
+        Type ocfAttributeType = FindType("OCFExposed");
+        if (ocfAttributeType == null)
+            return "    // ERROR: Could not find OCFExposed attribute.\r\n";
 
         // Separate buckets to ensure methods come last
         string variableDeclarations = "";
@@ -131,14 +131,14 @@ public class {newName} : Controllable
 
         foreach (var member in members)
         {
-            Attribute oscExposedInstance = member.GetCustomAttribute(oscAttributeType);
-            if (oscExposedInstance == null) continue;
+            Attribute ocfExposedInstance = member.GetCustomAttribute(ocfAttributeType);
+            if (ocfExposedInstance == null) continue;
 
             //The mirror derives from Controllable, so a member of the same name would shadow the real
             //one: a 'Save' would disable preset handling, an 'id' would break OSC addressing.
             if (Controllable.IsReservedMemberName(member.Name))
             {
-                Debug.LogError($"{type.Name}.{member.Name} has [OSCExposed] but collides with a member "
+                Debug.LogError($"{type.Name}.{member.Name} has [OCFExposed] but collides with a member "
                     + "Controllable already declares. Skipped - rename it to expose it.");
                 continue;
             }
@@ -146,11 +146,11 @@ public class {newName} : Controllable
             //A targetList names the List<string> the member is chosen from. It is resolved by name at
             //runtime, so a name that resolves to nothing would fail silently - it is checked here,
             //where the target type is in hand and the user is looking at the console.
-            string targetList = ReadAttributeString(oscAttributeType, oscExposedInstance, "targetList");
+            string targetList = ReadAttributeString(ocfAttributeType, ocfExposedInstance, "targetList");
             if (!string.IsNullOrEmpty(targetList) && !(member is MethodInfo)
                 && !HasStringList(type, targetList))
             {
-                Debug.LogError($"{type.Name}.{member.Name} has [OSCExposed(targetList = \"{targetList}\")] "
+                Debug.LogError($"{type.Name}.{member.Name} has [OCFExposed(targetList = \"{targetList}\")] "
                     + $"but {type.Name} has no public List<string> called '{targetList}'. Skipped.");
                 continue;
             }
@@ -159,10 +159,10 @@ public class {newName} : Controllable
             {
                 if (!field.IsPublic)
                 {
-                    Debug.LogWarning($"{type.Name}.{field.Name} has [OSCExposed] but is not public. Ignored.");
+                    Debug.LogWarning($"{type.Name}.{field.Name} has [OCFExposed] but is not public. Ignored.");
                     continue;
                 }
-                string attributes = GetAttributes(field, oscAttributeType, oscExposedInstance, targetList);
+                string attributes = GetAttributes(field, ocfAttributeType, ocfExposedInstance, targetList);
                 variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(field.FieldType)} {field.Name};\r\n\r\n";
                 pollComparisons += BuildPollComparison(field.Name, field.FieldType);
             }
@@ -173,10 +173,10 @@ public class {newName} : Controllable
 
                 if (!isPublic)
                 {
-                    Debug.LogWarning($"{type.Name}.{prop.Name} has [OSCExposed] but is not public. Ignored.");
+                    Debug.LogWarning($"{type.Name}.{prop.Name} has [OCFExposed] but is not public. Ignored.");
                     continue;
                 }
-                string attributes = GetAttributes(prop, oscAttributeType, oscExposedInstance, targetList);
+                string attributes = GetAttributes(prop, ocfAttributeType, ocfExposedInstance, targetList);
                 variableDeclarations += $"{attributes}    public {ToFriendlyTypeName(prop.PropertyType)} {prop.Name};\r\n\r\n";
                 pollComparisons += BuildPollComparison(prop.Name, prop.PropertyType);
             }
@@ -190,14 +190,14 @@ public class {newName} : Controllable
                 string paramNames = string.Join(", ", parameters.Select(p => p.Name));
                 string callPrefix = method.ReturnType == typeof(void) ? "" : "return ";
 
-                methodDeclarations += $"    [OSCMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        {callPrefix}(controllableTargetScript as {type.FullName}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
+                methodDeclarations += $"    [OCFMethod]\r\n    public {returnType} {method.Name}({paramList})\r\n    {{\r\n        {callPrefix}(controllableTargetScript as {type.FullName}).{method.Name}({paramNames});\r\n    }}\r\n\r\n";
             }
         }
 
         string result = variableDeclarations + methodDeclarations + BuildPollMethod(type, pollComparisons);
 
         if (string.IsNullOrWhiteSpace(result))
-            result = "    // No public OSCExposed members found.\r\n";
+            result = "    // No public OCFExposed members found.\r\n";
 
         return result;
     }
@@ -289,7 +289,7 @@ public class {newName} : Controllable
             && typeof(System.Collections.Generic.List<string>).IsAssignableFrom(property.PropertyType);
     }
 
-    //The generator never hard-references OSCExposed, so its options are read off the instance by
+    //The generator never hard-references OCFExposed, so its options are read off the instance by
     //name, tolerating either a field or a property.
     private static string ReadAttributeString(Type attributeType, Attribute instance, string optionName)
     {
@@ -311,7 +311,7 @@ public class {newName} : Controllable
         return property != null && (bool)property.GetValue(instance);
     }
 
-    private static string GetAttributes(MemberInfo member, Type oscAttributeType, Attribute oscInstance, string targetList)
+    private static string GetAttributes(MemberInfo member, Type ocfAttributeType, Attribute ocfInstance, string targetList)
     {
         string attributes = "";
 
@@ -330,18 +330,18 @@ public class {newName} : Controllable
         if (tooltip != null)
             attributes += $"    [Tooltip(\"{EscapeString(tooltip.tooltip)}\")]\r\n";
 
-        // OSCProperty logic: every [OSCExposed] option that has an [OSCProperty] equivalent is
+        // OCFProperty logic: every [OCFExposed] option that has an [OCFProperty] equivalent is
         // forwarded, so a generated mirror reaches them without being hand-edited.
-        var oscPropArgs = new System.Collections.Generic.List<string>();
+        var ocfPropArgs = new System.Collections.Generic.List<string>();
 
-        if (ReadAttributeBool(oscAttributeType, oscInstance, "readOnly"))
-            oscPropArgs.Add("readOnly = true");
+        if (ReadAttributeBool(ocfAttributeType, ocfInstance, "readOnly"))
+            ocfPropArgs.Add("readOnly = true");
 
         if (!string.IsNullOrEmpty(targetList))
-            oscPropArgs.Add($"targetList = \"{EscapeString(targetList)}\"");
+            ocfPropArgs.Add($"targetList = \"{EscapeString(targetList)}\"");
 
-        string oscPropSuffix = oscPropArgs.Count == 0 ? "" : $"({string.Join(", ", oscPropArgs)})";
-        attributes += $"    [OSCProperty{oscPropSuffix}]\r\n";
+        string ocfPropSuffix = ocfPropArgs.Count == 0 ? "" : $"({string.Join(", ", ocfPropArgs)})";
+        attributes += $"    [OCFProperty{ocfPropSuffix}]\r\n";
 
         return attributes;
     }
