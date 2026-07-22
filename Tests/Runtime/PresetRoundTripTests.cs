@@ -30,6 +30,7 @@ namespace Theoriz.OCF.Tests
         public string selected;
 
         public float notInPresets;
+        public float readOnlyValue;
     }
 
     /// <summary>
@@ -55,6 +56,8 @@ namespace Theoriz.OCF.Tests
         [OSCProperty(targetList = "options")] public string selected;
 
         [OSCProperty(includeInPresets = false)] public float notInPresets;
+
+        [OSCProperty(readOnly = true)] public float readOnlyValue;
     }
 
     /// <summary>
@@ -255,6 +258,7 @@ namespace Theoriz.OCF.Tests
 
             WriteToTarget(target, Saved);
             target.notInPresets = 1f;
+            target.readOnlyValue = 1f;
             ctrl.Update(); // poll picks the values up into the mirror
             AssertMirrorHolds(ctrl, Saved, "The poll should have read the target's values");
 
@@ -265,6 +269,7 @@ namespace Theoriz.OCF.Tests
             // Change every member on the target script, and let the poll carry them to the mirror.
             WriteToTarget(target, Overwritten);
             target.notInPresets = 2f;
+            target.readOnlyValue = 2f;
             ctrl.Update();
             AssertMirrorHolds(ctrl, Overwritten, "The values should have changed before the preset is loaded back");
 
@@ -277,6 +282,9 @@ namespace Theoriz.OCF.Tests
                 "A member marked includeInPresets = false should be left alone by a preset load.");
             Assert.AreEqual(2f, target.notInPresets, Tolerance,
                 "...and so should the target script's copy of it.");
+
+            Assert.AreEqual(2f, ctrl.readOnlyValue, Tolerance,
+                "A read-only member is not written to the preset and not restored from one.");
 
             // A preset write leaves mirror and target agreeing, so the next poll must find nothing
             // and must not report the restored values as a script-side change.
@@ -313,6 +321,8 @@ namespace Theoriz.OCF.Tests
             StringAssert.Contains("neutral", contents, "The list-backed selection should be saved.");
             StringAssert.DoesNotContain("notInPresets", contents,
                 "A member marked includeInPresets = false should not be written at all.");
+            StringAssert.DoesNotContain("readOnlyValue", contents,
+                "A read-only member cannot be restored by a load, so it should not be written either.");
 
             // Drop everything the controllable holds, then load: nothing but the file can supply it.
             WriteToTarget(target, Overwritten);

@@ -957,7 +957,10 @@ public class Controllable : MonoBehaviour
         foreach (FieldInfo p in Fields.Values)
         {
             OSCProperty attribute = Attribute.GetCustomAttribute(p, typeof(OSCProperty)) as OSCProperty;
-            if (attribute.includeInPresets)
+
+            //A read-only member is never restored - setFieldProp refuses to write one - so recording
+            //it would put a value in the file that no load can apply.
+            if (attribute.includeInPresets && !attribute.readOnly)
             {
                 if(debug)
                     Debug.Log("Attribute : " + p.Name + " of type " + p.FieldType + " is saved.");

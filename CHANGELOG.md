@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - **Breaking:** `[OSCProperty(enumName = "...")]` is removed; declare the field with its real enum type instead.
 - Restoring a preset member whose type OCF does not support logs a warning.
 - `Generate Controllable Script` refuses a `targetList` that names no public `List<string>` on the target script.
+- Read-only members are left out of preset files.
 
 ## [1.5.3] - 2026-07-22
 

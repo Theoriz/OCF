@@ -119,7 +119,7 @@ You can also write a mirror by hand instead of generating it, which is what the 
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `readOnly` | bool | `false` | Value is displayed but cannot be edited. |
+| `readOnly` | bool | `false` | Value is displayed but cannot be edited, and is left out of presets — nothing can write it back. |
 | `showInUI` | bool | `true` | Set `false` to control the member over OSC only, with no widget. |
 | `includeInPresets` | bool | `true` | Set `false` to leave the member out of saved presets. |
 | `targetList` | string | — | Name of a `List<string>` whose entries this member is chosen from; renders a dropdown. See *Exposing a list*. |
@@ -167,7 +167,7 @@ OSCMaster.Receivers["myReceiver"].messageReceived += (OSCMessage m) => Debug.Log
 
 ## Presets
 
-`Controllable` can save and restore the state of all its `[OSCProperty]` members to a file. The generated panel exposes **Save**, **Save As** and **Show** buttons plus a preset dropdown, and the same methods are reachable over OSC.
+`Controllable` can save and restore the state of its `[OSCProperty]` members to a file. Members marked `readOnly` or `includeInPresets = false` are left out. The generated panel exposes **Save**, **Save As** and **Show** buttons plus a preset dropdown, and the same methods are reachable over OSC.
 
 The ControllableMaster panel carries the global buttons instead: **Save All**, **Save As All** and **Open Presets Folder**. The last one reveals the presets root in your file browser, works whether or not any preset has been saved, and is also on the `ControllableMaster` component in the Inspector so you can reach the folder without entering Play mode.
 
