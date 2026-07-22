@@ -9,7 +9,7 @@ OCF exposes your scripts' fields, properties and methods to [OSC](https://en.wik
 | Requirement | Notes |
 |---|---|
 | **Unity 2022.3** or later | |
-| **com.theoriz.unityosc** 1.3.0 or later | OCF's OSC transport. Earlier versions still work but declare Unity 2019.4. |
+| [**com.theoriz.unityosc**](https://github.com/Theoriz/UnityOSC) 1.3.0 or later | OCF's OSC transport. Earlier versions still work but declare Unity 2019.4. |
 
 The packages declare no UPM `dependencies`, so nothing installs UnityOSC for you and nothing warns you when it is too old — install it first.
 
