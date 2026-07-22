@@ -114,6 +114,11 @@ public class ControllableMaster : MonoBehaviour
         RegisteredControllables.Clear();
         instance = null;
         _presetRootDirectory = null;
+
+        //Subscribers that unsubscribe in OnDestroy are already safe, but a subscriber that does not
+        //would otherwise keep receiving callbacks across a play session when Domain Reload is off.
+        controllableAdded = null;
+        controllableRemoved = null;
     }
 
     #region Preset root
