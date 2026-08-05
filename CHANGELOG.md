@@ -6,10 +6,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [2.1.0] - 2026-08-05
 
+### Added
+
+- `Assets ▸ OCF ▸ Update Controllable Script` regenerates a mirror script from the Project window.
+
 ### Changed
 
 - Generated mirrors are declared in the namespace of the script they mirror.
 - `Generate Controllable Script` moved from `Assets ▸ Controllable` to `Assets ▸ OCF`.
+- `Generate Controllable Script` is hidden on a mirror script, which is offered `Update Controllable Script` instead.
 
 ## [2.0.0] - 2026-07-22
 

@@ -40,26 +40,13 @@ public class UpdateControllableComponentMenu : Editor
         // Get the asset path
         string path = AssetDatabase.GetAssetPath(monoScript);
 
-        GameObject go = sourceComponent.gameObject;
         Type sourceType = sourceComponent.GetType();
         string sourceName = sourceType.Name;
 
-        string baseName;
-        string controllableName;
-
-        // Logic: Determine if we are starting from the Base or the Controllable
-        if (sourceName.EndsWith("Controllable"))
-        {
-            // We are on the "PlayerControllable", so the base is "Player"
-            baseName = sourceName.Substring(0, sourceName.Length - "Controllable".Length);
-            controllableName = sourceName;
-        }
-        else
-        {
-            // We are on "Player", so the controllable is "PlayerControllable"
-            baseName = sourceName;
-            controllableName = sourceName + "Controllable";
-        }
+        // Either end of the pair works: "PlayerControllable" reports "Player" as its source name, and
+        // "Player" reports itself, so both arrive at the same pair.
+        string baseName = ControllableGenerator.SourceNameFor(sourceName);
+        string controllableName = baseName + ControllableGenerator.MirrorSuffix;
 
         // Try to find the controllable type
         Type controllableType = ControllableGenerator.FindType(controllableName);

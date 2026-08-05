@@ -63,7 +63,9 @@ public class MyScript : MonoBehaviour
 Then generate the Controllable, either way round:
 
 - **From the component**, three-dots menu ▸ **Add Controllable**. It offers to generate the script, and once compilation finishes it adds the component and wires it up for you — nothing else to do.
-- **From the Project window**, right-click the script ▸ **Assets ▸ OCF ▸ Generate Controllable Script**. This only writes the script; add the generated component to the same GameObject and point its `controllableTargetScript` at your script yourself.
+- **From the Project window**, right-click the script ▸ **Assets ▸ OCF ▸ Generate Controllable Script**. This only writes the script.
+
+Later, when you add or rename an exposed member, regenerate the mirror: right-click the component ▸ **Update Controllable**, or right-click the mirror script in the Project window ▸ **Assets ▸ OCF ▸ Update Controllable Script**.
 
 ### How it works: the two-object mirror
 

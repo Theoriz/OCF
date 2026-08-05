@@ -7,16 +7,15 @@ using UnityEngine;
 
 public static class ControllableGenerator
 {
-    [MenuItem("Assets/OCF/Generate Controllable Script", true, 10000)]
     #region Menu
 
+    [MenuItem("Assets/OCF/Generate Controllable Script", true, 10000)]
     private static bool ValidateMenu()
     {
-        TextAsset selected = Selection.activeObject as TextAsset;
-        if (!selected) return false;
-
-        string path = AssetDatabase.GetAssetPath(selected);
-        return path.EndsWith(".cs");
+        //Hidden on a mirror, which gets Update instead: generating from one could only write a
+        //FooControllableControllable mirroring a mirror.
+        MonoScript selected = SelectedScript();
+        return selected != null && !IsMirrorType(selected.GetClass());
     }
 
     [MenuItem("Assets/OCF/Generate Controllable Script", false, 10000)]
@@ -35,8 +34,77 @@ public static class ControllableGenerator
         GenerateControllableForScript(originalName, path);
     }
 
+    [MenuItem("Assets/OCF/Update Controllable Script", true, 10001)]
+    private static bool ValidateUpdateMenu()
+    {
+        //The counterpart of the entry above: shown only on a mirror, and only when its source name can
+        //be recovered from its own. A hand-written mirror named anything else has nothing to update
+        //from, so neither entry appears on it.
+        MonoScript selected = SelectedScript();
+        if (selected == null) return false;
 
-    // -------------------------- Helpers --------------------------
+        Type type = selected.GetClass();
+        return IsMirrorType(type) && IsMirrorName(type.Name);
+    }
+
+    [MenuItem("Assets/OCF/Update Controllable Script", false, 10001)]
+    private static void UpdateControllableScript()
+    {
+        MonoScript selected = SelectedScript();
+        if (selected == null) return;
+
+        //Regenerated from the mirror's own path, not from the script it mirrors: the two need not
+        //share a folder, and this has to rewrite the file that was clicked rather than write a second
+        //copy beside the source.
+        string path = AssetDatabase.GetAssetPath(selected);
+        string sourceName = SourceNameFor(selected.GetClass().Name);
+
+        GenerateControllableForScript(sourceName, path, forceReplace: true);
+    }
+
+    //The selected asset when it is a C# script, and null otherwise. Both validators need the
+    //MonoScript rather than the path, to reach the compiled type behind it.
+    private static MonoScript SelectedScript()
+    {
+        MonoScript selected = Selection.activeObject as MonoScript;
+        if (selected == null) return null;
+
+        return AssetDatabase.GetAssetPath(selected).EndsWith(".cs") ? selected : null;
+    }
+
+    #endregion
+
+    #region Mirror naming
+
+    //Every generated mirror is named for the script it mirrors plus this suffix, which is what pairs
+    //the two: the file name, the class name and the component all follow from it.
+    public const string MirrorSuffix = "Controllable";
+
+    //Whether a type is a mirror rather than a script to be mirrored. The base type decides it and not
+    //the name, because a hand-written mirror can be called anything - and the answer gates whether
+    //generating from it makes sense at all.
+    public static bool IsMirrorType(Type type)
+    {
+        return type != null && typeof(Controllable).IsAssignableFrom(type);
+    }
+
+    //Whether a source name can be recovered from this one. A script named exactly 'Controllable'
+    //carries no source name, only the suffix.
+    public static bool IsMirrorName(string typeName)
+    {
+        return !string.IsNullOrEmpty(typeName)
+            && typeName.Length > MirrorSuffix.Length
+            && typeName.EndsWith(MirrorSuffix);
+    }
+
+    //'FooControllable' -> 'Foo', and any other name unchanged, so a source script maps to itself and
+    //callers that hold either one can ask without checking first.
+    public static string SourceNameFor(string typeName)
+    {
+        return IsMirrorName(typeName)
+            ? typeName.Substring(0, typeName.Length - MirrorSuffix.Length)
+            : typeName;
+    }
 
     #endregion
 
