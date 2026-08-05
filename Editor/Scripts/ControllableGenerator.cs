@@ -7,7 +7,7 @@ using UnityEngine;
 
 public static class ControllableGenerator
 {
-    [MenuItem("Assets/Controllable/Generate Controllable Script", true, 10000)]
+    [MenuItem("Assets/OCF/Generate Controllable Script", true, 10000)]
     #region Menu
 
     private static bool ValidateMenu()
@@ -19,7 +19,7 @@ public static class ControllableGenerator
         return path.EndsWith(".cs");
     }
 
-    [MenuItem("Assets/Controllable/Generate Controllable Script", false, 10000)]
+    [MenuItem("Assets/OCF/Generate Controllable Script", false, 10000)]
     private static void CreateControllableScript()
     {
         MonoScript selected = Selection.activeObject as MonoScript;
@@ -77,23 +77,34 @@ public static class ControllableGenerator
         // Extract OCFProperty fields & properties
         string memberDeclarations = ExtractOCFExposedMembers(originalType);
 
-        string scriptContent =
-$@"using UnityEngine;
-
-public class {newName} : Controllable
-{{
-{memberDeclarations}
-}}
-";
-
-        // Force Windows CRLF
-        scriptContent = scriptContent.Replace("\r\n", "\n");
-        scriptContent = scriptContent.Replace("\n", "\r\n");
+        string scriptContent = BuildScriptText(newName, originalType.Namespace, memberDeclarations);
 
         File.WriteAllText(newPath, scriptContent);
         AssetDatabase.Refresh();
 
         Debug.Log($"Generated Controllable script: {newName}.cs");
+    }
+
+    //The whole text of a generated mirror file. Pure, and public so the emitted shape can be tested
+    //without an Editor round-trip: everything that needs the Editor - finding the type, reading its
+    //members, writing the file - happens around it.
+    public static string BuildScriptText(string controllableName, string namespaceName, string memberDeclarations)
+    {
+        string classDeclaration =
+$@"public class {controllableName} : Controllable
+{{
+{memberDeclarations}
+}}
+";
+
+        string scriptContent =
+$@"using UnityEngine;
+
+{WrapInNamespace(classDeclaration, namespaceName)}";
+
+        // Force Windows CRLF
+        scriptContent = scriptContent.Replace("\r\n", "\n");
+        return scriptContent.Replace("\n", "\r\n");
     }
 
     public static Type FindType(string typeName)
@@ -273,6 +284,26 @@ public class {newName} : Controllable
     #endregion
 
     #region Source text helpers
+
+    //The mirror is declared in the same namespace as the script it mirrors, so the two are found the
+    //same way and the emitted body reaches the source type even when it is only visible from inside
+    //that namespace. Nothing binds on the namespace: FindType matches on the short name, and
+    //Controllable binds members by name, so a mirror generated before this still resolves.
+    private static string WrapInNamespace(string classDeclaration, string namespaceName)
+    {
+        if (string.IsNullOrEmpty(namespaceName))
+            return classDeclaration;
+
+        return $"namespace {namespaceName}\r\n{{\r\n{Indent(classDeclaration)}}}\r\n";
+    }
+
+    //Blank lines are left blank rather than filled with spaces, which is what the compiler-agnostic
+    //formatting of the rest of the emitted file does too.
+    private static string Indent(string text)
+    {
+        string[] lines = text.Replace("\r\n", "\n").Split('\n');
+        return string.Join("\r\n", lines.Select(line => line.Length == 0 ? line : "    " + line));
+    }
 
     //Whether the target script carries a public List<string> under this name, as a field or as a
     //readable property - the two shapes Controllable.GetTargetList resolves at runtime.
