@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Theoriz ▸ OCF ▸ Update All Controllables` regenerates every mirror script in the project, skipping those that belong to a package.
 - `ControllableGenerator.TryGenerateControllableForScript` writes a mirror and reports failures instead of showing a dialog, without refreshing the AssetDatabase.
 
+### Changed
+
+- The `Theoriz ▸ OCF` menu entries use priorities in the 3000 range, so other tools can place their own items before or after them.
+
 ## [2.1.0] - 2026-08-05
 
 ### Added

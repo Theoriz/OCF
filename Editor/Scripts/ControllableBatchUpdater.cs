@@ -10,8 +10,7 @@ using UnityEngine;
 public static class ControllableBatchUpdater
 {
     #region Menu
-
-    [MenuItem("Theoriz/OCF/Update All Controllables", false, 10000)]
+    [MenuItem("Theoriz/OCF/Update All Controllables", false, 3100)]
     public static void UpdateAllControllables()
     {
         List<MonoScript> mirrors = FindUpdatableMirrors();
