@@ -112,28 +112,14 @@ public static class ControllableGenerator
 
     public static void GenerateControllableForScript(string originalName, string originalPath, bool forceReplace = false)
     {
-        string directory = Path.GetDirectoryName(originalPath);
-
-        string newName = originalName + "Controllable";
-        string newPath = Path.Combine(directory, newName + ".cs");
-
-        // Reflection: try to find the original type
-        Type originalType = FindType(originalName);
-        if (originalType == null)
-        {
-            EditorUtility.DisplayDialog("Error",
-                $"Could not find compiled type: {originalName}\n" +
-                $"Make sure the script compiles with no errors.",
-                "OK");
-            return;
-        }
+        string newPath = MirrorPathFor(originalName, originalPath);
 
         // Check existing file
         if (File.Exists(newPath) && !forceReplace)
         {
             bool overwrite = EditorUtility.DisplayDialog(
                 "File Already Exists",
-                $"{newName}.cs already exists.\n\nReplace it?",
+                $"{Path.GetFileName(newPath)} already exists.\n\nReplace it?",
                 "Replace",
                 "Cancel"
             );
@@ -142,15 +128,51 @@ public static class ControllableGenerator
                 return;
         }
 
+        if (!TryGenerateControllableForScript(originalName, originalPath, out string error))
+        {
+            EditorUtility.DisplayDialog("Error", error, "OK");
+            return;
+        }
+
+        AssetDatabase.Refresh();
+
+        Debug.Log($"Generated Controllable script: {Path.GetFileName(newPath)}");
+    }
+
+    //Writes the mirror and reports why it could not, without touching the UI or the AssetDatabase: a
+    //batch of these must not raise a dialog or force a reimport per file. The prompts and the single
+    //Refresh belong to the caller.
+    public static bool TryGenerateControllableForScript(string originalName, string originalPath, out string error)
+    {
+        // Reflection: try to find the original type
+        Type originalType = FindType(originalName);
+        if (originalType == null)
+        {
+            error = $"Could not find compiled type: {originalName}\n" +
+                    $"Make sure the script compiles with no errors.";
+            return false;
+        }
+
+        string newPath = MirrorPathFor(originalName, originalPath);
+        string newName = Path.GetFileNameWithoutExtension(newPath);
+
         // Extract OCFProperty fields & properties
         string memberDeclarations = ExtractOCFExposedMembers(originalType);
 
         string scriptContent = BuildScriptText(newName, originalType.Namespace, memberDeclarations);
 
         File.WriteAllText(newPath, scriptContent);
-        AssetDatabase.Refresh();
 
-        Debug.Log($"Generated Controllable script: {newName}.cs");
+        error = null;
+        return true;
+    }
+
+    //The mirror file for a source name, in the folder of the path it is generated from. Updating passes
+    //the mirror's own path, so the file that was clicked is the one rewritten.
+    private static string MirrorPathFor(string originalName, string originalPath)
+    {
+        string directory = Path.GetDirectoryName(originalPath);
+        return Path.Combine(directory, originalName + MirrorSuffix + ".cs");
     }
 
     //The whole text of a generated mirror file. Pure, and public so the emitted shape can be tested

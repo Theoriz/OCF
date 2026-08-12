@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0] - 2026-08-12
+
+### Added
+
+- `Theoriz ▸ OCF ▸ Update All Controllables` regenerates every mirror script in the project, skipping those that belong to a package.
+- `ControllableGenerator.TryGenerateControllableForScript` writes a mirror and reports failures instead of showing a dialog, without refreshing the AssetDatabase.
+
 ## [2.1.0] - 2026-08-05
 
 ### Added

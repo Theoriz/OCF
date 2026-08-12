@@ -67,6 +67,8 @@ Then generate the Controllable, either way round:
 
 Later, when you add or rename an exposed member, regenerate the mirror: right-click the component ▸ **Update Controllable**, or right-click the mirror script in the Project window ▸ **Assets ▸ OCF ▸ Update Controllable Script**.
 
+**Theoriz ▸ OCF ▸ Update All Controllables** does the same for every Controllable in the project at once — useful after updating OCF itself, when a release changes what the generator emits. It tells you how many scripts it is about to rewrite before touching anything, and leaves scripts that belong to a package alone.
+
 ### How it works: the two-object mirror
 
 The generator emits a *mirror* class next to your script, in the same namespace:
