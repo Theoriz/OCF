@@ -1,4 +1,3 @@
-using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 
@@ -28,22 +27,13 @@ namespace Theoriz.OCF.Tests.Editor
         public void ScriptsInTheProjectsOwnAssets_AreNotAPackage()
         {
             Assert.IsFalse(ControllableBatchUpdater.IsPackagePath(
-                "Assets/GenUIDemo/Scripts/TestScriptControllable.cs"));
+                "Assets/MyGame/Scripts/PlayerControllable.cs"));
             Assert.IsFalse(ControllableBatchUpdater.IsPackagePath(null));
         }
 
-        [Test]
-        public void TheDemoMirror_IsFound()
-        {
-            var paths = ControllableBatchUpdater.FindUpdatableMirrors()
-                .Select(AssetDatabase.GetAssetPath)
-                .ToList();
-
-            Assert.IsTrue(paths.Any(p => p.EndsWith("/TestScriptControllable.cs")),
-                "The demo's TestScriptControllable should be updatable.");
-        }
-
-        //Nothing shipped by a package is rewritten, and nothing that is not a mirror.
+        //Nothing shipped by a package is rewritten, and nothing that is not a mirror. Asserted over
+        //whatever the project holds rather than over a script named here: a test that named one would
+        //only pass in a project that has it, and these tests ship with the package.
         [Test]
         public void OnlyProjectOwnedMirrors_AreFound()
         {
