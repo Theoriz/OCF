@@ -72,6 +72,7 @@ public class ControllableMaster : MonoBehaviour
 
     private RegisterService service;
     private bool zeroconfServiceCreated = false;
+    private bool _zeroconfUnavailableReported;
 
     #region MonoBehaviour
 
@@ -482,18 +483,33 @@ public class ControllableMaster : MonoBehaviour
 
     #region Zeroconf
 
+    //Advertising the endpoint needs a Zeroconf provider installed on the machine (Bonjour on Windows).
     private void CreateZeroconfService() {
 
-        //_osc._udp.
-        service = new RegisterService();
-        service.Name = Application.productName + " OCF";
-        service.RegType = "_osc._udp";
-        service.ReplyDomain = "local.";
-        service.UPort = (ushort)OSCInputPort;
+        try
+        {
+            //_osc._udp.
+            service = new RegisterService();
+            service.Name = Application.productName + " OCF";
+            service.RegType = "_osc._udp";
+            service.ReplyDomain = "local.";
+            service.UPort = (ushort)OSCInputPort;
 
-        service.Register();
+            service.Register();
 
-        zeroconfServiceCreated = true;
+            zeroconfServiceCreated = true;
+        }
+        catch (Exception e)
+        {
+            //Register can throw after the service object exists, so drop it either way.
+            DisposeZeroconfService();
+
+            if (!_zeroconfUnavailableReported)
+            {
+                Debug.Log("[OCF] No Zeroconf provider available: " + e.Message);
+                _zeroconfUnavailableReported = true;
+            }
+        }
     }
 
     private void CloseZeroconfService() {
@@ -501,8 +517,28 @@ public class ControllableMaster : MonoBehaviour
         if (!zeroconfServiceCreated)
             return;
 
-        service.Dispose();
+        DisposeZeroconfService();
+    }
+
+    private void DisposeZeroconfService()
+    {
         zeroconfServiceCreated = false;
+
+        if (service == null)
+            return;
+
+        try
+        {
+            service.Dispose();
+        }
+        catch (Exception e)
+        {
+            //A provider that failed to register can fail to tear down too; nothing to recover.
+            if (ShowDebug)
+                Debug.Log("[OCF] Disposing the Zeroconf service failed: " + e.Message);
+        }
+
+        service = null;
     }
 
     #endregion
