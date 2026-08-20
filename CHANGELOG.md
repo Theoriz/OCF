@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0] - 2026-08-20
+
+### Added
+
+- `Update Controllable Script` repairs a mirror that no longer compiles: the file is emptied so the project builds again, then regenerated from the source script once Unity has reloaded.
+
+### Fixed
+
+- `Update Controllable Script` stays available, and `Generate Controllable Script` stays hidden, on a mirror whose assembly is in error — the entries no longer depend on the compiled type.
+- `Update Controllable` on a component no longer rewrites a broken mirror from the stale members of the previously compiled assembly.
+
 ## [2.2.1] - 2026-08-13
 
 ### Fixed

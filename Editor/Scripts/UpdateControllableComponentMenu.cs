@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -48,10 +49,12 @@ public class UpdateControllableComponentMenu : Editor
         string baseName = ControllableGenerator.SourceNameFor(sourceName);
         string controllableName = baseName + ControllableGenerator.MirrorSuffix;
 
-        // Try to find the controllable type
-        Type controllableType = ControllableGenerator.FindType(controllableName);
+        // The file that would be rewritten, found on disk rather than through the mirror type: a
+        // project that no longer compiles keeps the previous type loaded, so its presence says
+        // nothing about the file being there.
+        string mirrorPath = ControllableGenerator.MirrorPathFor(baseName, path);
 
-        if (controllableType == null)
+        if (!File.Exists(mirrorPath))
         {
             bool generate = EditorUtility.DisplayDialog(
                 "Controllable Script Not Found",
@@ -63,9 +66,12 @@ public class UpdateControllableComponentMenu : Editor
 
             if (!generate)
                 return;
+
+            ControllableGenerator.GenerateControllableForScript(baseName, path, true);
+            return;
         }
 
-        // Generate new controllable script
-        ControllableGenerator.GenerateControllableForScript(baseName, path, true);
+        // The shared path, which repairs a mirror that no longer compiles before regenerating it.
+        ControllableGenerator.UpdateMirror(controllableName, path);
     }
 }

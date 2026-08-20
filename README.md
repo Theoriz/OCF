@@ -67,6 +67,8 @@ Then generate the Controllable, either way round:
 
 Later, when you add or rename an exposed member, regenerate the mirror: right-click the component ▸ **Update Controllable**, or right-click the mirror script in the Project window ▸ **Assets ▸ OCF ▸ Update Controllable Script**.
 
+Renaming an exposed member leaves the mirror calling one that no longer exists, so the project stops compiling until you regenerate. **Update Controllable Script** handles that case too: it empties the mirror so the project compiles again, then regenerates it from your script once Unity has reloaded, reporting both steps in the Console. Values set on the Controllable component in the Inspector do not survive it.
+
 **Theoriz ▸ OCF ▸ Update All Controllables** does the same for every Controllable in the project at once — useful after updating OCF itself, when a release changes what the generator emits. It tells you how many scripts it is about to rewrite before touching anything, and leaves scripts that belong to a package alone.
 
 ### How it works: the two-object mirror

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,7 +16,7 @@ public static class ControllableGenerator
         //Hidden on a mirror, which gets Update instead: generating from one could only write a
         //FooControllableControllable mirroring a mirror.
         MonoScript selected = SelectedScript();
-        return selected != null && !IsMirrorType(selected.GetClass());
+        return selected != null && MirrorNameFor(selected) == null;
     }
 
     [MenuItem("Assets/OCF/Generate Controllable Script", false, 10000)]
@@ -41,10 +42,7 @@ public static class ControllableGenerator
         //be recovered from its own. A hand-written mirror named anything else has nothing to update
         //from, so neither entry appears on it.
         MonoScript selected = SelectedScript();
-        if (selected == null) return false;
-
-        Type type = selected.GetClass();
-        return IsMirrorType(type) && IsMirrorName(type.Name);
+        return selected != null && IsMirrorName(MirrorNameFor(selected));
     }
 
     [MenuItem("Assets/OCF/Update Controllable Script", false, 10001)]
@@ -56,10 +54,7 @@ public static class ControllableGenerator
         //Regenerated from the mirror's own path, not from the script it mirrors: the two need not
         //share a folder, and this has to rewrite the file that was clicked rather than write a second
         //copy beside the source.
-        string path = AssetDatabase.GetAssetPath(selected);
-        string sourceName = SourceNameFor(selected.GetClass().Name);
-
-        GenerateControllableForScript(sourceName, path, forceReplace: true);
+        UpdateMirror(MirrorNameFor(selected), AssetDatabase.GetAssetPath(selected));
     }
 
     //The selected asset when it is a C# script, and null otherwise. Both validators need the
@@ -70,6 +65,21 @@ public static class ControllableGenerator
         if (selected == null) return null;
 
         return AssetDatabase.GetAssetPath(selected).EndsWith(".cs") ? selected : null;
+    }
+
+    //The mirror class this script declares, or null when it declares none. The compiled type answers
+    //when it is available; when it is not - a stale mirror puts its whole assembly in error, and
+    //MonoScript.GetClass() can then return null - the source text answers instead, which is the only
+    //reading that survives a failed compile and so the one the validators need.
+    public static string MirrorNameFor(MonoScript script)
+    {
+        if (script == null) return null;
+
+        Type type = script.GetClass();
+        if (IsMirrorType(type)) return type.Name;
+
+        //A resolved type that is not a mirror is a definite answer; only an unresolved one falls back.
+        return type == null ? MirrorClassNameFromText(script.text) : null;
     }
 
     #endregion
@@ -104,6 +114,117 @@ public static class ControllableGenerator
         return IsMirrorName(typeName)
             ? typeName.Substring(0, typeName.Length - MirrorSuffix.Length)
             : typeName;
+    }
+
+    //A base list starts with the base class, so Controllable is either the end of the declaration or
+    //followed by an interface. Reading the text rather than the type is what keeps the menus usable
+    //while the assembly is in error - which is exactly when a mirror needs updating.
+    static readonly Regex MirrorDeclaration = new Regex(
+        @"\bclass\s+(\w+)\s*:\s*(?:[\w.]+\.)?" + MirrorSuffix + @"\s*(?=[,{]|$)",
+        RegexOptions.Multiline);
+
+    static readonly Regex NamespaceDeclaration = new Regex(
+        @"^\s*namespace\s+([\w.]+)", RegexOptions.Multiline);
+
+    //The mirror class a script's source text declares, or null when it declares none. Pure: the text
+    //need not compile, and a mirror whose body no longer does is the case this exists for.
+    public static string MirrorClassNameFromText(string scriptText)
+    {
+        if (string.IsNullOrEmpty(scriptText)) return null;
+
+        Match match = MirrorDeclaration.Match(scriptText);
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    //The namespace a script's source text declares, or null for the global one. A repaired mirror is
+    //rewritten from its own text, so this is how it keeps the namespace it was generated into.
+    public static string NamespaceFromText(string scriptText)
+    {
+        if (string.IsNullOrEmpty(scriptText)) return null;
+
+        Match match = NamespaceDeclaration.Match(scriptText);
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    #endregion
+
+    #region Update and repair
+
+    /// <summary>
+    /// The single update path both menu entries take: regenerates the mirror, repairing it first when
+    /// the project no longer compiles.
+    /// </summary>
+    /// <remarks>
+    /// Regeneration reflects over the source type, so it only works while the project compiles. A
+    /// mirror still referencing a renamed member breaks its whole assembly, and Unity keeps the last
+    /// successfully compiled assemblies loaded - so reflection would answer with the *stale* members
+    /// and write the same broken file back. Emptying the mirror first is what breaks that deadlock.
+    /// </remarks>
+    public static void UpdateMirror(string mirrorName, string mirrorPath)
+    {
+        if (!IsMirrorName(mirrorName) || string.IsNullOrEmpty(mirrorPath))
+            return;
+
+        string sourceName = SourceNameFor(mirrorName);
+
+        if (!ReflectionIsStale(mirrorPath))
+        {
+            GenerateControllableForScript(sourceName, mirrorPath, forceReplace: true);
+            return;
+        }
+
+        //Not confirmed separately: the repair is how this state is updated at all, and the file it
+        //rewrites is one it would rewrite anyway. What happened is reported to the Console.
+        RepairMirror(mirrorPath, sourceName);
+    }
+
+    //Whether reflection can still be trusted to describe the source script. Two readings, because
+    //which one reports a broken project depends on whether Unity kept the previous assemblies loaded:
+    //the editor-wide compilation state, and the mirror's own type having gone missing.
+    private static bool ReflectionIsStale(string mirrorPath)
+    {
+        if (EditorUtility.scriptCompilationFailed || EditorApplication.isCompiling)
+            return true;
+
+        MonoScript mirror = AssetDatabase.LoadAssetAtPath<MonoScript>(mirrorPath);
+        return mirror != null && mirror.GetClass() == null;
+    }
+
+    //Empties the mirror so the project compiles, and queues the regeneration that follows the reload.
+    //The file is rewritten and never deleted: deleting it drops its .meta GUID too, and the mirror
+    //written back under a new one would leave every component referencing it a missing script.
+    private static void RepairMirror(string mirrorPath, string sourceName)
+    {
+        //The path the regeneration will write, which need not be the file that was clicked: emptying
+        //any other one would blank a file nothing then rewrites.
+        string targetPath = MirrorPathFor(sourceName, mirrorPath);
+        if (!File.Exists(targetPath))
+        {
+            EditorUtility.DisplayDialog(
+                "Update Controllable Script",
+                $"{Path.GetFileName(targetPath)} was not found, so there is nothing to repair.",
+                "OK");
+            return;
+        }
+
+        string existing = File.ReadAllText(targetPath);
+
+        //Queued before the write: the write plus the Refresh below triggers the reload the
+        //regeneration has to happen after.
+        PendingControllableUpdates.Enqueue(targetPath, sourceName);
+
+        //An empty class body compiles whatever the source script now looks like - including a member
+        //whose *type* was renamed, which stripping only the generated method bodies would not survive.
+        File.WriteAllText(targetPath, BuildScriptText(
+            Path.GetFileNameWithoutExtension(targetPath),
+            NamespaceFromText(existing),
+            ""));
+
+        //Logged before the Refresh, which induces the domain reload.
+        Debug.Log($"[OCF] Emptied {Path.GetFileName(targetPath)} so the project compiles again. "
+            + $"It is regenerated from {sourceName} once Unity has reloaded.");
+
+        AssetDatabase.Refresh();
     }
 
     #endregion
@@ -169,7 +290,7 @@ public static class ControllableGenerator
 
     //The mirror file for a source name, in the folder of the path it is generated from. Updating passes
     //the mirror's own path, so the file that was clicked is the one rewritten.
-    private static string MirrorPathFor(string originalName, string originalPath)
+    public static string MirrorPathFor(string originalName, string originalPath)
     {
         string directory = Path.GetDirectoryName(originalPath);
         return Path.Combine(directory, originalName + MirrorSuffix + ".cs");
