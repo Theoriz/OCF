@@ -278,7 +278,10 @@ public static class ControllableGenerator
         string newName = Path.GetFileNameWithoutExtension(newPath);
 
         // Extract OCFProperty fields & properties
-        string memberDeclarations = ExtractOCFExposedMembers(originalType);
+        //The source sits beside the mirror by the same rule MirrorPathFor writes it, and originalPath is
+        //the mirror's own path when updating - so it is derived rather than passed in.
+        string sourcePath = Path.Combine(Path.GetDirectoryName(originalPath), originalName + ".cs");
+        string memberDeclarations = ExtractOCFExposedMembers(originalType, sourcePath);
 
         string scriptContent = BuildScriptText(newName, originalType.Namespace, memberDeclarations);
 
@@ -335,7 +338,35 @@ $@"using UnityEngine;
         return null;
     }
 
-    private static string ExtractOCFExposedMembers(Type type)
+    //Reflection groups members by metadata table, so properties and fields come back in separate blocks
+    //whatever order the source declared them in. The mirror's order drives the inspector layout, the
+    //order [Header] attributes land in, and the parameter order in the OCF client - so it is re-derived
+    //from the source text. Falls back to the reflection order when the source file cannot be read, and
+    //a partial class sorts only by the file named after the type: members declared in another part keep
+    //the reflection order, at the end.
+    private static MemberInfo[] SortBySourceOrder(MemberInfo[] members, string sourcePath)
+    {
+        if (string.IsNullOrEmpty(sourcePath) || !File.Exists(sourcePath))
+            return members;
+
+        string text;
+        try { text = File.ReadAllText(sourcePath); }
+        catch { return members; }
+
+        //OrderBy is stable, so members the text does not match keep their reflection order, at the end.
+        return members.OrderBy(m => DeclarationIndex(text, m.Name)).ToArray();
+    }
+
+    //Matches a name only where a declaration can follow it: '=' or ';' for a field, '=>' or '{' for a
+    //property, '(' for a method - so a mention in a comment, a tooltip or an initialiser does not win.
+    //Public so the matching can be tested without a compiled fixture type on disk.
+    public static int DeclarationIndex(string text, string name)
+    {
+        Match match = Regex.Match(text, @"\b" + Regex.Escape(name) + @"\s*(?:=>|[;={(])");
+        return match.Success ? match.Index : int.MaxValue;
+    }
+
+    private static string ExtractOCFExposedMembers(Type type, string sourcePath)
     {
         Type ocfAttributeType = FindType("OCFExposed");
         if (ocfAttributeType == null)
@@ -349,7 +380,7 @@ $@"using UnityEngine;
         BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
         // Declared members (fields, properties, methods); fields/properties are emitted before methods below.
-        MemberInfo[] members = type.GetMembers(flags);
+        MemberInfo[] members = SortBySourceOrder(type.GetMembers(flags), sourcePath);
 
         foreach (var member in members)
         {

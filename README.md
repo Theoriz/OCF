@@ -107,6 +107,8 @@ public class MyScriptControllable : Controllable
 
 `[Header]`, `[Range]` and `[Tooltip]` are carried over from your script and honoured by the UI.
 
+Members keep the order your script declares them in — fields and properties interleaved as written — with methods last. Mirrors generated before OCF 2.3.1 were ordered by reflection instead, which grouped properties apart from fields; regenerate one to reorder it.
+
 The mirror re-declares each exposed member with `[OCFProperty]` (fields) or `[OCFMethod]` (methods), and `Controllable` binds the two **by name** at `Awake`.
 
 > [!IMPORTANT]

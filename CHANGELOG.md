@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [2.3.1] - 2026-08-21
+
+### Fixed
+
+- Generated mirrors declare members in the order the source script does, instead of grouping properties apart from fields. Regenerate existing ones (Update Controllable) to reorder them.
+
 ## [2.3.0] - 2026-08-20
 
 ### Added
